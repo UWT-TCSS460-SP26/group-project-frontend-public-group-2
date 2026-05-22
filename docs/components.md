@@ -22,7 +22,7 @@ import { fetchGroupOneApi } from "@/lib/api";
 
 // Public route:
 const data = await fetchGroupOneApi<SearchResults>("/movies/search", {
-  query: { q: "blade runner", page: 1 },
+  query: { query: "blade runner", page: 1 },
 });
 
 // Auth-protected route:
@@ -110,7 +110,7 @@ import type { SearchResults } from "@/types/media";
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
-  const data = q ? await fetchGroupOneApi<SearchResults>("/movies/search", { query: { q } }) : null;
+  const data = q ? await fetchGroupOneApi<SearchResults>("/movies/search", { query: { query: q } }) : null;
 
   return (
     <PageContainer>
@@ -126,6 +126,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   );
 }
 ```
+
+Note: keep your app URL as `/search?q=...`, then map `q` to Group 1's API param `query` when calling `/movies/search`.
 
 ## What NOT to do
 
