@@ -16,6 +16,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       issuer: process.env.AUTH_TCSS460_ISSUER!,
       clientId: process.env.AUTH_TCSS460_CLIENT_ID!,
       clientSecret: process.env.AUTH_TCSS460_SECRET!,
+      // Auth² only supports client_secret_post (per its /.well-known/openid-configuration);
+      // openid-client's default of client_secret_basic gets rejected at the token endpoint.
+      client: {
+        token_endpoint_auth_method: "client_secret_post",
+      },
       authorization: {
         params: {
           scope: "openid email profile",
