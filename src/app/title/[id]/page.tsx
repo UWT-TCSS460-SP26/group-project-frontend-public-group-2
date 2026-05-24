@@ -129,6 +129,12 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
   const { mediaType, payload } = detailResult;
   const tmdb = asRecord(payload.tmdb) ?? payload;
 
+  // Detect a TMDB API error response (e.g. invalid key) so we can surface it
+  const tmdbError =
+    tmdb.success === false || typeof tmdb.status_message === "string"
+      ? (asString(tmdb.status_message) ?? "Movie data temporarily unavailable.")
+      : null;
+
   const title =
     asString(tmdb.title) ??
     asString(tmdb.name) ??
@@ -175,6 +181,25 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
 
   return (
     <PageContainer>
+      {tmdbError && (
+        <Box
+          sx={{
+            mb: 3,
+            p: 2,
+            borderRadius: 1,
+            border: "1px solid",
+            borderColor: "warning.main",
+            bgcolor: "warning.light",
+            color: "warning.dark",
+          }}
+        >
+          <Typography sx={{ fontWeight: 600 }}>
+            Movie data unavailable
+          </Typography>
+          <Typography sx={{ fontSize: "0.9rem" }}>{tmdbError}</Typography>
+        </Box>
+      )}
+
       {backdropUrl && (
         <Box
           sx={{
