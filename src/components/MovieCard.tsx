@@ -2,6 +2,7 @@ import Link from "next/link";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import type { Movie } from "@/types/media";
+import { TMDB_IMG_BASE } from "@/types/media";
 
 interface MovieCardProps {
   movie: Movie;
@@ -10,6 +11,18 @@ interface MovieCardProps {
 
 export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
   const href = `${hrefPrefix}/${movie.id}`;
+
+  // poster_path is a relative TMDB path like "/abc123.jpg".
+  // Guard: if Group 1 ever sends a pre-resolved full URL, pass it through.
+  const posterUrl = movie.poster_path
+    ? movie.poster_path.startsWith("http")
+      ? movie.poster_path
+      : `${TMDB_IMG_BASE}${movie.poster_path}`
+    : null;
+
+  // release_date comes as "YYYY-MM-DD" — display just the year.
+  const releaseYear = movie.release_date?.slice(0, 4);
+
   return (
     <Link
       href={href}
@@ -28,9 +41,7 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
           sx={{
             aspectRatio: "2 / 3",
             backgroundColor: "background.paper",
-            backgroundImage: movie.posterUrl
-              ? `url(${movie.posterUrl})`
-              : undefined,
+            backgroundImage: posterUrl ? `url(${posterUrl})` : undefined,
             backgroundSize: "cover",
             backgroundPosition: "center",
             mb: 1,
@@ -39,7 +50,7 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
             justifyContent: "center",
           }}
         >
-          {!movie.posterUrl && (
+          {!posterUrl && (
             <Typography
               sx={{
                 color: "text.secondary",
@@ -65,7 +76,7 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
         >
           {movie.title}
         </Typography>
-        {movie.releaseYear !== undefined && (
+        {releaseYear && (
           <Typography
             sx={{
               mt: 0.25,
@@ -73,7 +84,7 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
               color: "text.secondary",
             }}
           >
-            {movie.releaseYear}
+            {releaseYear}
           </Typography>
         )}
       </Box>
