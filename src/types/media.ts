@@ -1,7 +1,3 @@
-// Placeholder shapes for Group 1's API responses.
-// Refine these once Jonathan's API scout (docs/group-1-api-notes.md) maps
-// the actual field names from /api-docs.
-
 export interface Movie {
   id: number | string;
   title: string;
@@ -11,8 +7,23 @@ export interface Movie {
   rating?: number;
 }
 
-export interface SearchResults {
-  results: Movie[];
+export interface GroupOneMovieResult {
+  id: number | string;
+  title?: string;
+  name?: string;
+  posterUrl?: string | null;
+  poster_path?: string | null;
+  poster?: string | null;
+  releaseYear?: number | string;
+  release_date?: string | null;
+  first_air_date?: string | null;
+  overview?: string;
+  rating?: number;
+  vote_average?: number;
+}
+
+export interface SearchResults<T = Movie> {
+  results: T[];
   page?: number;
   totalPages?: number;
   totalResults?: number;
