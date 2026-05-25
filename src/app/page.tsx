@@ -13,47 +13,13 @@ import {
   PopularGrid,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
-import type { GroupOneMovieResult, Movie, SearchResults } from "@/types/media";
-
-const POPULAR_ENDPOINT = "/movies/popular";
-const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
-
-function toPosterUrl(result: GroupOneMovieResult) {
-  const poster = result.posterUrl ?? result.poster_path ?? result.poster ?? null;
-
-  if (!poster) {
-    return null;
-  }
-
-  if (poster.startsWith("http://") || poster.startsWith("https://")) {
-    return poster;
-  }
-
-  return `${TMDB_IMAGE_BASE_URL}${poster}`;
-}
-
-function toMovie(result: GroupOneMovieResult): Movie {
-  const releaseDate = result.release_date ?? result.first_air_date;
-
-  return {
-    id: result.id,
-    title: result.title ?? result.name ?? "Untitled",
-    posterUrl: toPosterUrl(result),
-    releaseYear: result.releaseYear ?? releaseDate?.slice(0, 4),
-    overview: result.overview,
-    rating: result.rating ?? result.vote_average,
-  };
-}
+import type { SearchResults } from "@/types/media";
 
 async function PopularSection() {
-  let popular: Movie[] = [];
+  let data: SearchResults | null = null;
   let errorDetail: string | null = null;
-
   try {
-    const data = await fetchGroupOneApi<SearchResults<GroupOneMovieResult>>(
-      POPULAR_ENDPOINT,
-    );
-    popular = (data.results ?? []).map(toMovie);
+    data = await fetchGroupOneApi<SearchResults>("/movies/popular");
   } catch (error) {
     errorDetail =
       error instanceof Error
@@ -70,7 +36,7 @@ async function PopularSection() {
     );
   }
 
-  if (popular.length === 0) {
+  if (!data || data.results.length === 0) {
     return (
       <EmptyState
         message="Catalog is being prepared."
@@ -79,7 +45,7 @@ async function PopularSection() {
     );
   }
 
-  return <PopularGrid movies={popular} />;
+  return <PopularGrid movies={data.results} />;
 }
 
 export default async function Home() {
