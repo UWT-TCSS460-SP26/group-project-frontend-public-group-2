@@ -79,18 +79,39 @@ function getYear(date: string | undefined) {
   return Number.isFinite(year) ? year : undefined;
 }
 
-async function fetchDetail(id: string): Promise<DetailResult> {
+// Group 1's enriched endpoint returns HTTP 200 with a TMDB error body when the
+// id doesn't match that media type, so an HTTP-only check isn't enough — we
+// have to look inside `tmdb` to know if the lookup actually succeeded.
+function hasTmdbData(payload: UnknownRecord): boolean {
+  const tmdb = asRecord(payload.tmdb);
+  if (!tmdb) return false;
+  if (tmdb.success === false) return false;
+  if (typeof tmdb.status_message === "string") return false;
+  return true;
+}
+
+async function tryFetchDetail(
+  mediaType: "movie" | "tv",
+  id: string,
+): Promise<UnknownRecord | null> {
   try {
-    const movie = await fetchGroupOneApi<UnknownRecord>(
-      `/details/movie/${id}/enriched`,
+    const payload = await fetchGroupOneApi<UnknownRecord>(
+      `/details/${mediaType}/${id}/enriched`,
     );
-    return { mediaType: "movie", payload: movie };
+    return hasTmdbData(payload) ? payload : null;
   } catch {
-    const tv = await fetchGroupOneApi<UnknownRecord>(
-      `/details/tv/${id}/enriched`,
-    );
-    return { mediaType: "tv", payload: tv };
+    return null;
   }
+}
+
+async function fetchDetail(id: string): Promise<DetailResult | null> {
+  const movie = await tryFetchDetail("movie", id);
+  if (movie) return { mediaType: "movie", payload: movie };
+
+  const tv = await tryFetchDetail("tv", id);
+  if (tv) return { mediaType: "tv", payload: tv };
+
+  return null;
 }
 
 export default async function TitleDetailPage({ params }: TitleDetailPageProps) {
@@ -115,11 +136,11 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
     return (
       <PageContainer>
         <ErrorState
-          message="Could not load this title."
+          message="Title not found."
           detail={
             fetchError instanceof Error
               ? fetchError.message
-              : "Please try again later."
+              : `No movie or TV show matched id ${id}.`
           }
         />
       </PageContainer>
@@ -128,12 +149,6 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
 
   const { mediaType, payload } = detailResult;
   const tmdb = asRecord(payload.tmdb) ?? payload;
-
-  // Detect a TMDB API error response (e.g. invalid key) so we can surface it
-  const tmdbError =
-    tmdb.success === false || typeof tmdb.status_message === "string"
-      ? (asString(tmdb.status_message) ?? "Movie data temporarily unavailable.")
-      : null;
 
   const title =
     asString(tmdb.title) ??
@@ -181,25 +196,6 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
 
   return (
     <PageContainer>
-      {tmdbError && (
-        <Box
-          sx={{
-            mb: 3,
-            p: 2,
-            borderRadius: 1,
-            border: "1px solid",
-            borderColor: "warning.main",
-            bgcolor: "warning.light",
-            color: "warning.dark",
-          }}
-        >
-          <Typography sx={{ fontWeight: 600 }}>
-            Movie data unavailable
-          </Typography>
-          <Typography sx={{ fontSize: "0.9rem" }}>{tmdbError}</Typography>
-        </Box>
-      )}
-
       {backdropUrl && (
         <Box
           sx={{
