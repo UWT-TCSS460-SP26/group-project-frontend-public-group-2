@@ -1,19 +1,52 @@
+import { Suspense } from "react";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { auth } from "@/auth";
-import { Hero, PageContainer, PopularGrid, EmptyState } from "@/components";
-import type { Movie } from "@/types/media";
+import {
+  EmptyState,
+  ErrorState,
+  Hero,
+  LoadingState,
+  PageContainer,
+  PopularGrid,
+} from "@/components";
+import { fetchGroupOneApi } from "@/lib/api";
+import type { SearchResults } from "@/types/media";
 
-// TODO (Mani):
-// 1. Replace `popular` below with a real fetch from Group 1's popular endpoint
-//    using `fetchGroupOneApi` from "@/lib/api". See docs/components.md for the
-//    pattern.
-// 2. Add a search bar (input + <form action="/search">) above <PopularGrid> so
-//    visitors can launch a search from the home page. The /search route itself
-//    is Collins's.
-// 3. Handle loading / empty / error with <LoadingState> / <EmptyState> /
-//    <ErrorState>.
-const popular: Movie[] = [];
+async function PopularSection() {
+  let data: SearchResults | null = null;
+  let errorDetail: string | null = null;
+  try {
+    data = await fetchGroupOneApi<SearchResults>("/movies/popular");
+  } catch (error) {
+    errorDetail =
+      error instanceof Error
+        ? error.message
+        : "We couldn't load popular titles right now.";
+  }
+
+  if (errorDetail) {
+    return (
+      <ErrorState
+        message="Popular titles are unavailable."
+        detail={errorDetail}
+      />
+    );
+  }
+
+  if (!data || data.results.length === 0) {
+    return (
+      <EmptyState
+        message="Catalog is being prepared."
+        detail="Popular titles will appear here shortly."
+      />
+    );
+  }
+
+  return <PopularGrid movies={data.results} />;
+}
 
 export default async function Home() {
   const session = await auth();
@@ -26,14 +59,43 @@ export default async function Home() {
         blurb="Search, browse, and discover movies and shows pulled live from our upstream partner's catalog."
       />
       <PageContainer>
-        {popular.length > 0 ? (
-          <PopularGrid movies={popular} />
-        ) : (
-          <EmptyState
-            message="Catalog is being prepared."
-            detail="Popular titles will appear here shortly."
+        <Box
+          component="form"
+          action="/search"
+          method="GET"
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            gap: 1.5,
+            alignItems: { sm: "center" },
+            mb: { xs: 5, md: 6 },
+          }}
+        >
+          <TextField
+            name="q"
+            variant="outlined"
+            fullWidth
+            placeholder="Search titles, genres, and more"
+            aria-label="Search for movies or shows"
           />
-        )}
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
+              alignSelf: { xs: "stretch", sm: "auto" },
+              whiteSpace: "nowrap",
+              px: 2.5,
+            }}
+          >
+            Search →
+          </Button>
+        </Box>
+
+        <Suspense
+          fallback={<LoadingState message="Loading popular titles..." />}
+        >
+          <PopularSection />
+        </Suspense>
 
         {session?.accessToken && (
           <Box
