@@ -1,19 +1,86 @@
+import { Suspense } from "react";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { auth } from "@/auth";
-import { Hero, PageContainer, PopularGrid, EmptyState } from "@/components";
-import type { Movie } from "@/types/media";
+import {
+  EmptyState,
+  ErrorState,
+  Hero,
+  LoadingState,
+  PageContainer,
+  PopularGrid,
+} from "@/components";
+import { fetchGroupOneApi } from "@/lib/api";
+import type { GroupOneMovieResult, Movie, SearchResults } from "@/types/media";
 
-// TODO (Mani):
-// 1. Replace `popular` below with a real fetch from Group 1's popular endpoint
-//    using `fetchGroupOneApi` from "@/lib/api". See docs/components.md for the
-//    pattern.
-// 2. Add a search bar (input + <form action="/search">) above <PopularGrid> so
-//    visitors can launch a search from the home page. The /search route itself
-//    is Collins's.
-// 3. Handle loading / empty / error with <LoadingState> / <EmptyState> /
-//    <ErrorState>.
-const popular: Movie[] = [];
+const POPULAR_ENDPOINT = "/movies/popular";
+const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
+
+function toPosterUrl(result: GroupOneMovieResult) {
+  const poster = result.posterUrl ?? result.poster_path ?? result.poster ?? null;
+
+  if (!poster) {
+    return null;
+  }
+
+  if (poster.startsWith("http://") || poster.startsWith("https://")) {
+    return poster;
+  }
+
+  return `${TMDB_IMAGE_BASE_URL}${poster}`;
+}
+
+function toMovie(result: GroupOneMovieResult): Movie {
+  const releaseDate = result.release_date ?? result.first_air_date;
+
+  return {
+    id: result.id,
+    title: result.title ?? result.name ?? "Untitled",
+    posterUrl: toPosterUrl(result),
+    releaseYear: result.releaseYear ?? releaseDate?.slice(0, 4),
+    overview: result.overview,
+    rating: result.rating ?? result.vote_average,
+  };
+}
+
+async function PopularSection() {
+  let popular: Movie[] = [];
+  let errorDetail: string | null = null;
+
+  try {
+    const data = await fetchGroupOneApi<SearchResults<GroupOneMovieResult>>(
+      POPULAR_ENDPOINT,
+    );
+    popular = (data.results ?? []).map(toMovie);
+  } catch (error) {
+    errorDetail =
+      error instanceof Error
+        ? error.message
+        : "We couldn't load popular titles right now.";
+  }
+
+  if (errorDetail) {
+    return (
+      <ErrorState
+        message="Popular titles are unavailable."
+        detail={errorDetail}
+      />
+    );
+  }
+
+  if (popular.length === 0) {
+    return (
+      <EmptyState
+        message="Catalog is being prepared."
+        detail="Popular titles will appear here shortly."
+      />
+    );
+  }
+
+  return <PopularGrid movies={popular} />;
+}
 
 export default async function Home() {
   const session = await auth();
@@ -26,14 +93,43 @@ export default async function Home() {
         blurb="Search, browse, and discover movies and shows pulled live from our upstream partner's catalog."
       />
       <PageContainer>
-        {popular.length > 0 ? (
-          <PopularGrid movies={popular} />
-        ) : (
-          <EmptyState
-            message="Catalog is being prepared."
-            detail="Popular titles will appear here shortly."
+        <Box
+          component="form"
+          action="/search"
+          method="GET"
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            gap: 1.5,
+            alignItems: { sm: "center" },
+            mb: { xs: 5, md: 6 },
+          }}
+        >
+          <TextField
+            name="q"
+            variant="outlined"
+            fullWidth
+            placeholder="Search titles, genres, and more"
+            aria-label="Search for movies or shows"
           />
-        )}
+          <Button
+            type="submit"
+            variant="contained"
+            sx={{
+              alignSelf: { xs: "stretch", sm: "auto" },
+              whiteSpace: "nowrap",
+              px: 2.5,
+            }}
+          >
+            Search →
+          </Button>
+        </Box>
+
+        <Suspense
+          fallback={<LoadingState message="Loading popular titles..." />}
+        >
+          <PopularSection />
+        </Suspense>
 
         {session?.accessToken && (
           <Box
