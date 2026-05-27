@@ -7,3 +7,5 @@ export { PageTitle } from "./PageTitle";
 export { EmptyState } from "./EmptyState";
 export { LoadingState } from "./LoadingState";
 export { ErrorState } from "./ErrorState";
+export { SignInPrompt } from "./SignInPrompt";
+export { ConfirmDialog } from "./ConfirmDialog";
