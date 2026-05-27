@@ -1,7 +1,10 @@
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import { ErrorState, PageContainer, PageTitle } from "@/components";
+import { ErrorState, PageContainer, PageTitle, SignInPrompt } from "@/components";
+import { RatingControl } from "@/components/RatingControl";
+import { ReviewForm } from "@/components/ReviewForm";
+import { auth } from "@/auth";
 import { fetchGroupOneApi } from "@/lib/api";
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
@@ -90,26 +93,38 @@ function hasTmdbData(payload: UnknownRecord): boolean {
   return true;
 }
 
+type DetailAttempt = { payload: UnknownRecord | null; error: unknown };
+
 async function tryFetchDetail(
   mediaType: "movie" | "tv",
   id: string,
-): Promise<UnknownRecord | null> {
+): Promise<DetailAttempt> {
   try {
     const payload = await fetchGroupOneApi<UnknownRecord>(
       `/details/${mediaType}/${id}/enriched`,
+      // Always refetch so a just-submitted rating/review is reflected when a
+      // write control calls router.refresh() (the reflect-after-submit path).
+      { init: { cache: "no-store" } },
     );
-    return hasTmdbData(payload) ? payload : null;
-  } catch {
-    return null;
+    // A wrong-media-type / unknown id comes back 200 with a TMDB error body, so
+    // `null` here is a clean "miss" (lets the movie→TV fallback try the other type).
+    return { payload: hasTmdbData(payload) ? payload : null, error: null };
+  } catch (error) {
+    return { payload: null, error };
   }
 }
 
 async function fetchDetail(id: string): Promise<DetailResult | null> {
   const movie = await tryFetchDetail("movie", id);
-  if (movie) return { mediaType: "movie", payload: movie };
+  if (movie.payload) return { mediaType: "movie", payload: movie.payload };
 
   const tv = await tryFetchDetail("tv", id);
-  if (tv) return { mediaType: "tv", payload: tv };
+  if (tv.payload) return { mediaType: "tv", payload: tv.payload };
+
+  // Both attempts missed. If either genuinely errored (an outage, not a clean
+  // miss), surface that instead of a misleading "Title not found".
+  const attemptError = movie.error ?? tv.error;
+  if (attemptError) throw attemptError;
 
   return null;
 }
@@ -146,6 +161,11 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
       </PageContainer>
     );
   }
+
+  // Gate on the access token, not just the user: writes attach the bearer
+  // token, so a session without one would render a control that 401s (Story 5).
+  const session = await auth();
+  const canWrite = Boolean(session?.user && session?.accessToken);
 
   const { mediaType, payload } = detailResult;
   const tmdb = asRecord(payload.tmdb) ?? payload;
@@ -281,6 +301,29 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
         </Grid>
       </Grid>
 
+      {/* Your rating — signed-in users get the control (Collins, C1/C2);
+          signed-out visitors get an inert sign-in prompt (Story 5). */}
+      <Box
+        sx={{
+          mt: 6,
+          pt: 3,
+          borderTop: "1px solid",
+          borderColor: "divider",
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{ mb: 1.5, fontFamily: "var(--font-fraunces), serif" }}
+        >
+          Your rating
+        </Typography>
+        {canWrite ? (
+          <RatingControl tmdbId={id} mediaType={mediaType} />
+        ) : (
+          <SignInPrompt action="rate this title" />
+        )}
+      </Box>
+
       <Box
         sx={{
           mt: 6,
@@ -338,10 +381,22 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
             No community reviews yet.
           </Typography>
         )}
+      </Box>
 
-        <Typography sx={{ mt: 2, color: "text.secondary", fontStyle: "italic" }}>
-          Sign in to rate (coming in Sprint 7).
+      {/* Write a review — signed-in users get the form (Jonathan, J1/J2);
+          signed-out visitors get an inert sign-in prompt (Story 5). */}
+      <Box sx={{ mt: 6, pt: 3, borderTop: "1px solid", borderColor: "divider" }}>
+        <Typography
+          variant="h6"
+          sx={{ mb: 1.5, fontFamily: "var(--font-fraunces), serif" }}
+        >
+          Write a review
         </Typography>
+        {canWrite ? (
+          <ReviewForm tmdbId={id} mediaType={mediaType} />
+        ) : (
+          <SignInPrompt action="write a review" />
+        )}
       </Box>
     </PageContainer>
   );
