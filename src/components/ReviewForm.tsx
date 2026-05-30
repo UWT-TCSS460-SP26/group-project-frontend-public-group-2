@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Alert from "@mui/material/Alert";
@@ -11,11 +11,12 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
   createReview,
-  getMyReviews,
   updateReview,
 } from "@/lib/actions/reviews";
+import { findMyReviewForTitle } from "@/lib/find-my-review";
 import type { MediaType, Review } from "@/types/media";
 import { SignInPrompt } from "./SignInPrompt";
+import { useReviewsContextOptional } from "./reviews-context";
 
 export interface ReviewFormProps {
   /** TMDB id of the title being reviewed (the detail route's [id]). */
@@ -53,29 +54,6 @@ function validateBody(body: string): string | undefined {
   return undefined;
 }
 
-async function findExistingReview(
-  tmdbId: string,
-  mediaType: MediaType,
-): Promise<Review | null> {
-  let page = 1;
-  const limit = 50;
-
-  while (true) {
-    const result = await getMyReviews({ page, limit });
-    if (!result.ok) return null;
-
-    const match = result.data.results.find(
-      (review) => review.tmdbId === tmdbId && review.mediaType === mediaType,
-    );
-    if (match) return match;
-
-    if (page >= result.data.totalPages) break;
-    page += 1;
-  }
-
-  return null;
-}
-
 /**
  * Create / edit review form for a title. On a 409 from create, loads the user's
  * existing review and switches into edit mode (`updateReview` uses `description`).
@@ -86,6 +64,7 @@ async function findExistingReview(
 export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
   const router = useRouter();
   const { status: sessionStatus } = useSession();
+  const reviewsContext = useReviewsContextOptional();
   const formId = useId();
   const titleFieldId = `${formId}-title`;
   const bodyFieldId = `${formId}-body`;
@@ -93,6 +72,7 @@ export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const successRef = useRef<HTMLDivElement>(null);
+  const reviewIdRef = useRef<number | null>(null);
 
   const [mode, setMode] = useState<FormMode>("create");
   const [reviewId, setReviewId] = useState<number | null>(null);
@@ -114,8 +94,46 @@ export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
     }
   }, []);
 
+  const applyEditReview = useCallback(
+    (
+      existing: Pick<Review, "id" | "title" | "description">,
+      notice?: string,
+      options?: { scroll?: boolean },
+    ) => {
+      setMode("edit");
+      setReviewId(existing.id);
+      setTitle(existing.title ?? "");
+      setBody(existing.description ?? "");
+      setFieldErrors({});
+      setFormError(null);
+      setSuccessMessage(
+        notice ?? "You already reviewed this title. Update your review below.",
+      );
+      successRef.current?.focus();
+      if (options?.scroll) {
+        document
+          .getElementById("title-review-form")
+          ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    },
+    [],
+  );
+
+  const resetToCreateMode = useCallback((notice?: string) => {
+    setMode("create");
+    setReviewId(null);
+    setTitle("");
+    setBody("");
+    setFieldErrors({});
+    setFormError(null);
+    if (notice) {
+      setSuccessMessage(notice);
+      successRef.current?.focus();
+    }
+  }, []);
+
   const enterEditMode = useCallback(async (notice?: string) => {
-    const existing = await findExistingReview(tmdbId, mediaType);
+    const existing = await findMyReviewForTitle(tmdbId, mediaType);
     if (!existing) {
       setFormError(
         notice ??
@@ -124,17 +142,37 @@ export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
       return;
     }
 
-    setMode("edit");
-    setReviewId(existing.id);
-    setTitle(existing.title ?? "");
-    setBody(existing.description ?? "");
-    setFieldErrors({});
-    setFormError(null);
-    setSuccessMessage(
-      notice ?? "You already reviewed this title. Update your review below.",
-    );
-    successRef.current?.focus();
-  }, [mediaType, tmdbId]);
+    applyEditReview(existing, notice);
+  }, [applyEditReview, mediaType, tmdbId]);
+
+  useEffect(() => {
+    reviewIdRef.current = reviewId;
+  }, [reviewId]);
+
+  useEffect(() => {
+    if (!reviewsContext) return;
+
+    reviewsContext.registerReviewFormHandlers({
+      onEditReview: (review) => {
+        applyEditReview(
+          {
+            id: review.id,
+            title: review.title ?? "",
+            description: review.description ?? review.body ?? "",
+          },
+          "Update your review below.",
+          { scroll: true },
+        );
+      },
+      onReviewDeleted: (deletedId) => {
+        if (reviewIdRef.current === deletedId) {
+          resetToCreateMode("Review deleted.");
+        }
+      },
+    });
+
+    return () => reviewsContext.unregisterReviewFormHandlers();
+  }, [applyEditReview, resetToCreateMode, reviewsContext]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -249,6 +287,7 @@ export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
 
   return (
     <Box
+      id="title-review-form"
       component="form"
       onSubmit={handleSubmit}
       noValidate
