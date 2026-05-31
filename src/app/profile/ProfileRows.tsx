@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -105,6 +106,12 @@ function RatingRow({ item }: { item: EnrichedRatedItem }) {
     const nextScore = Number(score);
     const result = await updateRating(item.id, { score: nextScore });
     if (!result.ok) {
+      if (result.error.status === 401) {
+        await signOut({ redirect: false });
+        startTransition(() => router.refresh());
+        setBusy(false);
+        return;
+      }
       setError(result.error.message);
       setBusy(false);
       return;
@@ -120,6 +127,12 @@ function RatingRow({ item }: { item: EnrichedRatedItem }) {
     const result = await deleteRating(item.id);
     if (!result.ok) {
       setConfirmOpen(false);
+      if (result.error.status === 401) {
+        await signOut({ redirect: false });
+        startTransition(() => router.refresh());
+        setBusy(false);
+        return;
+      }
       setError(result.error.message);
       setBusy(false);
       return;
@@ -299,6 +312,12 @@ function ReviewRow({ review }: { review: Review }) {
       description: description.trim() || undefined,
     });
     if (!result.ok) {
+      if (result.error.status === 401) {
+        await signOut({ redirect: false });
+        startTransition(() => router.refresh());
+        setBusy(false);
+        return;
+      }
       setError(result.error.message);
       setBusy(false);
       return;
@@ -314,6 +333,12 @@ function ReviewRow({ review }: { review: Review }) {
     const result = await deleteReview(review.id);
     if (!result.ok) {
       setConfirmOpen(false);
+      if (result.error.status === 401) {
+        await signOut({ redirect: false });
+        startTransition(() => router.refresh());
+        setBusy(false);
+        return;
+      }
       setError(result.error.message);
       setBusy(false);
       return;
