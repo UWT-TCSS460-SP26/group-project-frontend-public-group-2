@@ -11,6 +11,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { SectionHeading } from "@/components/SectionHeading";
 import { deleteRating, updateRating } from "@/lib/actions/ratings";
 import { deleteReview, updateReview } from "@/lib/actions/reviews";
 import type { EnrichedRatedItem, Review } from "@/types/media";
@@ -64,16 +65,9 @@ function SectionTitle({
         mb: 2,
       }}
     >
-      <Typography
-        id={id}
-        variant="h2"
-        sx={{
-          fontSize: { xs: "1.4rem", md: "1.75rem" },
-          fontFamily: "var(--font-fraunces), serif",
-        }}
-      >
+      <SectionHeading id={id} mb={0}>
         {title}
-      </Typography>
+      </SectionHeading>
       {count !== undefined && (
         <Chip
           label={`${count} ${count === 1 ? "item" : "items"}`}

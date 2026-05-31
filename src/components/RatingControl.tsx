@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -137,11 +138,8 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
 
   return (
     <>
+      {/* "Your rating" heading is owned by the parent section in the detail page. */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-        <Typography variant="overline" sx={{ color: "text.secondary" }}>
-          Your rating
-        </Typography>
-
         <Box
           sx={{
             display: "flex",
@@ -179,9 +177,9 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
         )}
 
         {errorMessage && (
-          <Typography sx={{ color: "error.main", fontSize: "0.85rem" }}>
+          <Alert severity="error" role="alert">
             {errorMessage}
-          </Typography>
+          </Alert>
         )}
 
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>

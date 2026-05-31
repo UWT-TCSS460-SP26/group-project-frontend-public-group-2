@@ -1,7 +1,13 @@
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import { ErrorState, PageContainer, PageTitle, SignInPrompt } from "@/components";
+import {
+  ErrorState,
+  PageContainer,
+  PageTitle,
+  SectionHeading,
+  SignInPrompt,
+} from "@/components";
 import { RatingControl } from "@/components/RatingControl";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ReviewList } from "@/components/ReviewList";
@@ -291,10 +297,7 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
             )}
           </Box>
 
-          <Typography
-            variant="h6"
-            sx={{ mb: 1, fontFamily: "var(--font-fraunces), serif" }}
-          >
+          <Typography variant="h6" sx={{ mb: 1 }}>
             Synopsis
           </Typography>
           <Typography sx={{ color: "text.primary", lineHeight: 1.7 }}>
@@ -313,12 +316,7 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
           borderColor: "divider",
         }}
       >
-        <Typography
-          variant="h6"
-          sx={{ mb: 1.5, fontFamily: "var(--font-fraunces), serif" }}
-        >
-          Your rating
-        </Typography>
+        <SectionHeading>Your rating</SectionHeading>
         {canWrite ? (
           <RatingControl tmdbId={id} mediaType={mediaType} />
         ) : (
@@ -342,12 +340,7 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
             borderColor: "divider",
           }}
         >
-          <Typography
-            variant="h6"
-            sx={{ mb: 1.5, fontFamily: "var(--font-fraunces), serif" }}
-          >
-            Community
-          </Typography>
+          <SectionHeading>Community</SectionHeading>
 
           {averageScore !== undefined && (
             <Typography sx={{ color: "text.secondary", mb: 1 }}>
@@ -362,12 +355,7 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
         {/* Write a review — signed-in users get the form (Jonathan, J1/J2);
             signed-out visitors get an inert sign-in prompt (Story 5). */}
         <Box sx={{ mt: 6, pt: 3, borderTop: "1px solid", borderColor: "divider" }}>
-          <Typography
-            variant="h6"
-            sx={{ mb: 1.5, fontFamily: "var(--font-fraunces), serif" }}
-          >
-            Write a review
-          </Typography>
+          <SectionHeading>Write a review</SectionHeading>
           {canWrite ? (
             <ReviewForm tmdbId={id} mediaType={mediaType} />
           ) : (

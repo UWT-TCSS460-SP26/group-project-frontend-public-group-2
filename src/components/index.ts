@@ -4,6 +4,7 @@ export { PopularGrid } from "./PopularGrid";
 export { MovieCard } from "./MovieCard";
 export { PageContainer } from "./PageContainer";
 export { PageTitle } from "./PageTitle";
+export { SectionHeading } from "./SectionHeading";
 export { EmptyState } from "./EmptyState";
 export { LoadingState } from "./LoadingState";
 export { ErrorState } from "./ErrorState";
