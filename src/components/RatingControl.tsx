@@ -41,7 +41,10 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
   // Star widget value (0.5–5.0). null = nothing selected yet.
   const [starValue, setStarValue] = useState<number | null>(null);
 
-  const [loadingExisting, setLoadingExisting] = useState(false);
+  // Start in the loading state so we don't briefly flash the empty form while
+  // the existing-rating lookup is in flight. Avoids a synchronous setState
+  // inside useEffect (react-hooks/set-state-in-effect).
+  const [loadingExisting, setLoadingExisting] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -51,7 +54,6 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
   // When authenticated, check whether this user already rated this title.
   useEffect(() => {
     if (status !== "authenticated") return;
-    setLoadingExisting(true);
     getMyRatings().then((result) => {
       setLoadingExisting(false);
       if (!result.ok) return;

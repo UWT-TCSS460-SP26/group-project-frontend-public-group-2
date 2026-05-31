@@ -7,7 +7,8 @@ import { ProfileRows } from "./ProfileRows";
 
 export const metadata: Metadata = { title: "Profile - Group 2" };
 
-const REVIEW_LIMIT = 100;
+// Group 1 caps GET /reviews/me at limit=50 per the OpenAPI spec.
+const REVIEW_LIMIT = 50;
 
 export default async function ProfilePage() {
   const session = await auth();
