@@ -1,7 +1,18 @@
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import { ErrorState, PageContainer, PageTitle } from "@/components";
+import {
+  ErrorState,
+  PageContainer,
+  PageTitle,
+  SectionHeading,
+  SignInPrompt,
+} from "@/components";
+import { RatingControl } from "@/components/RatingControl";
+import { ReviewForm } from "@/components/ReviewForm";
+import { ReviewList } from "@/components/ReviewList";
+import { ReviewsProvider } from "@/components/reviews-context";
+import { auth } from "@/auth";
 import { fetchGroupOneApi } from "@/lib/api";
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
@@ -90,26 +101,38 @@ function hasTmdbData(payload: UnknownRecord): boolean {
   return true;
 }
 
+type DetailAttempt = { payload: UnknownRecord | null; error: unknown };
+
 async function tryFetchDetail(
   mediaType: "movie" | "tv",
   id: string,
-): Promise<UnknownRecord | null> {
+): Promise<DetailAttempt> {
   try {
     const payload = await fetchGroupOneApi<UnknownRecord>(
       `/details/${mediaType}/${id}/enriched`,
+      // Always refetch so a just-submitted rating/review is reflected when a
+      // write control calls router.refresh() (the reflect-after-submit path).
+      { init: { cache: "no-store" } },
     );
-    return hasTmdbData(payload) ? payload : null;
-  } catch {
-    return null;
+    // A wrong-media-type / unknown id comes back 200 with a TMDB error body, so
+    // `null` here is a clean "miss" (lets the movie→TV fallback try the other type).
+    return { payload: hasTmdbData(payload) ? payload : null, error: null };
+  } catch (error) {
+    return { payload: null, error };
   }
 }
 
 async function fetchDetail(id: string): Promise<DetailResult | null> {
   const movie = await tryFetchDetail("movie", id);
-  if (movie) return { mediaType: "movie", payload: movie };
+  if (movie.payload) return { mediaType: "movie", payload: movie.payload };
 
   const tv = await tryFetchDetail("tv", id);
-  if (tv) return { mediaType: "tv", payload: tv };
+  if (tv.payload) return { mediaType: "tv", payload: tv.payload };
+
+  // Both attempts missed. If either genuinely errored (an outage, not a clean
+  // miss), surface that instead of a misleading "Title not found".
+  const attemptError = movie.error ?? tv.error;
+  if (attemptError) throw attemptError;
 
   return null;
 }
@@ -146,6 +169,11 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
       </PageContainer>
     );
   }
+
+  // Gate on the access token, not just the user: writes attach the bearer
+  // token, so a session without one would render a control that 401s (Story 5).
+  const session = await auth();
+  const canWrite = Boolean(session?.user && session?.accessToken);
 
   const { mediaType, payload } = detailResult;
   const tmdb = asRecord(payload.tmdb) ?? payload;
@@ -269,10 +297,7 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
             )}
           </Box>
 
-          <Typography
-            variant="h6"
-            sx={{ mb: 1, fontFamily: "var(--font-fraunces), serif" }}
-          >
+          <Typography variant="h6" sx={{ mb: 1 }}>
             Synopsis
           </Typography>
           <Typography sx={{ color: "text.primary", lineHeight: 1.7 }}>
@@ -281,6 +306,8 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
         </Grid>
       </Grid>
 
+      {/* Your rating — signed-in users get the control (Collins, C1/C2);
+          signed-out visitors get an inert sign-in prompt (Story 5). */}
       <Box
         sx={{
           mt: 6,
@@ -289,60 +316,53 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
           borderColor: "divider",
         }}
       >
-        <Typography
-          variant="h6"
-          sx={{ mb: 1.5, fontFamily: "var(--font-fraunces), serif" }}
-        >
-          Community
-        </Typography>
-
-        {averageScore !== undefined && (
-          <Typography sx={{ color: "text.secondary", mb: 1 }}>
-            Average rating: {averageScore.toFixed(1)}
-            {ratingCount !== undefined ? ` (${ratingCount} ratings/reviews)` : ""}
-          </Typography>
-        )}
-
-        {recentReviews.length > 0 ? (
-          <Box sx={{ display: "grid", gap: 2, mt: 2 }}>
-            {recentReviews.slice(0, 5).map((review) => (
-              <Box
-                key={String(review.id)}
-                sx={{
-                  p: 2,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 1,
-                  bgcolor: "background.paper",
-                }}
-              >
-                <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {review.title ?? "Review"}
-                </Typography>
-                <Typography sx={{ color: "text.secondary", mb: 0.5 }}>
-                  {review.description ?? review.body ?? "No review text provided."}
-                </Typography>
-                {(review.author?.displayName || review.createdAt) && (
-                  <Typography sx={{ color: "text.secondary", fontSize: "0.85rem" }}>
-                    {review.author?.displayName ?? "Anonymous"}
-                    {review.createdAt
-                      ? ` • ${new Date(review.createdAt).toLocaleDateString()}`
-                      : ""}
-                  </Typography>
-                )}
-              </Box>
-            ))}
-          </Box>
+        <SectionHeading>Your rating</SectionHeading>
+        {canWrite ? (
+          <RatingControl tmdbId={id} mediaType={mediaType} />
         ) : (
-          <Typography sx={{ color: "text.secondary" }}>
-            No community reviews yet.
-          </Typography>
+          <SignInPrompt action="rate this title" />
         )}
-
-        <Typography sx={{ mt: 2, color: "text.secondary", fontStyle: "italic" }}>
-          Sign in to rate (coming in Sprint 7).
-        </Typography>
       </Box>
+
+      {/* ReviewsProvider coordinates the community list and the review form
+          so an Edit click on a row populates the form, and a delete from the
+          form/list updates the other (Jonathan, J1/J2). */}
+      <ReviewsProvider
+        reviews={recentReviews}
+        tmdbId={id}
+        mediaType={mediaType}
+      >
+        <Box
+          sx={{
+            mt: 6,
+            pt: 3,
+            borderTop: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <SectionHeading>Community</SectionHeading>
+
+          {averageScore !== undefined && (
+            <Typography sx={{ color: "text.secondary", mb: 1 }}>
+              Average rating: {averageScore.toFixed(1)}
+              {ratingCount !== undefined ? ` (${ratingCount} ratings/reviews)` : ""}
+            </Typography>
+          )}
+
+          <ReviewList />
+        </Box>
+
+        {/* Write a review — signed-in users get the form (Jonathan, J1/J2);
+            signed-out visitors get an inert sign-in prompt (Story 5). */}
+        <Box sx={{ mt: 6, pt: 3, borderTop: "1px solid", borderColor: "divider" }}>
+          <SectionHeading>Write a review</SectionHeading>
+          {canWrite ? (
+            <ReviewForm tmdbId={id} mediaType={mediaType} />
+          ) : (
+            <SignInPrompt action="write a review" />
+          )}
+        </Box>
+      </ReviewsProvider>
     </PageContainer>
   );
 }

@@ -6,8 +6,9 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { auth, signIn, signOut } from "@/auth";
 
-const navLinks = [
+const navLinks: { label: string; href: string; requireAuth?: boolean }[] = [
   { label: "Search", href: "/search" },
+  { label: "Profile", href: "/profile", requireAuth: true },
 ];
 
 const linkResetStyle: React.CSSProperties = {
@@ -54,20 +55,22 @@ export async function Header() {
             flex: 1,
           }}
         >
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} style={linkResetStyle}>
-              <Typography
-                sx={{
-                  fontSize: "0.9rem",
-                  color: "text.secondary",
-                  transition: "color 180ms ease",
-                  "&:hover": { color: "text.primary" },
-                }}
-              >
-                {link.label}
-              </Typography>
-            </Link>
-          ))}
+          {navLinks
+            .filter((link) => !link.requireAuth || session?.user)
+            .map((link) => (
+              <Link key={link.href} href={link.href} style={linkResetStyle}>
+                <Typography
+                  sx={{
+                    fontSize: "0.9rem",
+                    color: "text.secondary",
+                    transition: "color 180ms ease",
+                    "&:hover": { color: "text.primary" },
+                  }}
+                >
+                  {link.label}
+                </Typography>
+              </Link>
+            ))}
         </Box>
 
         {session?.user ? (

@@ -108,3 +108,150 @@ Team: Rudolf, Collins, Mani, Jonathan.
 - Wire write affordances on the detail page (rating + review) against
   Group 1's authenticated routes.
 - Cover the `/tv/popular` browse surface in addition to movies.
+
+---
+
+Sprint 7 (5/25 – 5/31, 2026).
+
+Team: Rudolf, Collins, Mani, Jonathan.
+
+---
+
+## Sprint 7 Planning — Tue 5/26
+
+**Goal:** stop being a read-only browser; let signed-in users rate, review,
+edit, delete, and see everything they own on a profile page. Keep signed-out
+visitors out of trouble (no buttons that 401).
+
+**Split (4/2/2/2 — Rudolf takes the hardest + all the docs):**
+
+- **Rudolf — R1/R2/R3/R4.**
+  - R1: write-capable API client (POST/PUT/DELETE, 204 handling, typed
+    `ApiError` parsing both error envelopes), shared types, all ratings /
+    reviews Server Actions returning an `ActionResult<T>` envelope (so
+    structured errors survive the server-action → client boundary),
+    `syncSubjectId` on first sign-in, plus `<SignInPrompt>` and
+    `<ConfirmDialog>` shared primitives and `SessionProvider` in providers.
+  - R2: detail-page write integration — gate on the access token, mount the
+    rating control + review form, refetch the enriched payload after
+    `router.refresh()` (`cache: "no-store"`). Stub Collins's / Jonathan's
+    components so the page is mergeable independently of them.
+  - R3: design-cohesion pass across all views + `/profile` link in the
+    Header.
+  - R4: README Sprint 7 scope, `docs/components.md` updates,
+    `docs/group-1-write-api.md` (new contract reference), and these minutes.
+- **Collins — C1 + C2.** `<RatingControl>` end-to-end: 5-star half-star
+  widget (mapped 0–10), submit / change / remove, signed-out gating, error
+  states.
+- **Jonathan — J1 + J2.** `<ReviewForm>` (validation, accessibility,
+  field-error mapping, 409 → edit) + `<ReviewList>` with own-review edit /
+  delete.
+- **Mani — M1 + M2.** `/profile` route with both lists (ratings enriched via
+  `/ratings/me/items`, reviews thin via `/reviews/me`) + inline edit / delete.
+
+**Dependency rule we agreed on:** R1 lands first and is the *only* thing the
+three feature owners depend on. They do not import from each other — they
+share the Server Actions and primitives, not the components. This was the
+explicit fix for the friction we saw in Sprint 6.
+
+---
+
+## Mid-sprint sync — Wed 5/28
+
+- R1 was merged (PR #29). Collins, Jonathan, and Mani started in parallel.
+- R2 (with stub `RatingControl` / `ReviewForm` components) was merged (PR
+  #30) so the team had a working detail-page mount point and a prop contract
+  to implement against.
+- No bugs filed against Group 1 — every write route behaved per their
+  OpenAPI spec, including the 409 dedupe path on `POST /reviews`.
+
+---
+
+## End-of-sprint integration — Sun 5/31
+
+- All six teammate PRs merged into `dev`: PR #31 (Jonathan), PR #32
+  (Collins), PR #33 (Mani).
+- Jonathan went past the minimum: in addition to the form, he shipped a
+  `<ReviewList>` plus a `ReviewsProvider` context so an Edit click on the
+  list populates the form below, and a delete in the list resets the form.
+  R2 wasn't actually complete until the detail page mounted `<ReviewList>`
+  inside the provider — the page had still been rendering the Sprint-6
+  inline review block until that change landed (commit `b0fc6a6`).
+- Two small fixes caught during the integration audit:
+  - Collins's `RatingControl` had a React 19 `react-hooks/set-state-in-effect`
+    lint error from `setLoadingExisting(true)` inside `useEffect`. Initialized
+    the state as `true` instead so we don't flash an empty form during the
+    existing-rating lookup.
+  - Mani's profile fetched `/reviews/me` with `limit: 100`, but Group 1
+    caps that at `50`. Lowered to `50` to stay within the contract.
+- Hardened a separate (pre-existing) Sprint-6 issue while we owned the
+  detail page: a real outage on the enriched fetch had been silently
+  rendering "Title not found". The fallback now surfaces a real error when
+  both `movie` and `tv` attempts actually error (as opposed to a clean
+  TMDB miss).
+- Gated the home page's "Dev: access token" debug block to development
+  builds only (`process.env.NODE_ENV !== "production"`) so a bearer token
+  never leaks into server-rendered HTML on Vercel.
+
+### R3 design-cohesion decisions
+
+Deliberate, intentional choices — not final polish (that's Sprint 8):
+
+- Added a shared `<SectionHeading>` so the detail page (`Your rating`,
+  `Community`, `Write a review`) and the profile (`Your ratings`,
+  `Your reviews`) share one visual tier — h2, responsive 1.4 / 1.75 rem.
+- Removed the redundant `fontFamily: "var(--font-fraunces), serif"` we'd
+  been sprinkling on `<Typography variant="h*">`. The theme already applies
+  Fraunces to every heading; the overrides were noise.
+- Standardized inline error rendering on MUI `<Alert severity="error" role="alert">`.
+  `RatingControl` was the outlier (plain `<Typography color="error">`) and
+  now matches `ReviewForm` / `ReviewList` / the profile rows.
+- Dropped the duplicate "Your rating" overline from inside `RatingControl`
+  — the parent section heading already says it.
+- Header `/profile` link only renders for signed-in users. Signed-out
+  visitors get a sign-in CTA on the profile page itself if they navigate
+  there directly.
+- **Kept** the section-spacing pattern split between the detail page
+  (top-divider + `mt: 6, pt: 3`) and the profile (gap-based grid + chip
+  counts). Both are intentional for their context.
+
+---
+
+## Sprint 7 retrospective
+
+**What went well**
+- The "share the *data layer*, not the *UI components*" decision held up
+  exactly as planned — Collins, Jonathan, and Mani never blocked each
+  other once R1 merged, only depended on `src/lib/actions/*` + the shared
+  primitives. The three feature PRs landed in parallel with no
+  cross-component conflicts.
+- The `ActionResult<T>` envelope was worth the up-front design. Jonathan's
+  field-level Zod 400 mapping in `ReviewForm` only works because the
+  `fieldErrors` object survives the server-action → client boundary —
+  if R1 had thrown an `ApiError` instead, those fields would have been
+  stripped to a generic message and the form would have had nothing to
+  map onto.
+- `useRouter().refresh()` + `cache: "no-store"` on the enriched fetch was
+  the simplest reflect-after-submit mechanism that worked. No optimistic
+  reconciliation logic required.
+
+**What hurt**
+- R2 looked done when it merged, but Jonathan's `<ReviewList>` /
+  `ReviewsProvider` arrived *after*, and the detail page kept rendering
+  the Sprint-6 inline review block until R2 was completed in a follow-up
+  commit. Worth flagging next sprint: when "feature owners deliver
+  components, integrator wires them" is the pattern, the integration
+  has to land *after* the components, not before.
+- The dev-only access-token block had been in `src/app/page.tsx` since
+  Sprint 6 and was rendering the bearer token into server-rendered HTML in
+  every environment. Caught it by code review during R3, not earlier.
+
+**Carryover into Sprint 8**
+- Deploy + responsive design pass (Sprint 8's whole charter).
+- Deeper UX/UI dive — mobile breakpoints on every view, focus indicators,
+  loading skeletons, the `Synopsis` sub-heading on the detail page,
+  consistent date formatting across `ReviewList` and the profile rows
+  (one uses `toLocaleDateString`, the other `Intl.DateTimeFormat`).
+- Consider expanding `<EmptyState>` / `<LoadingState>` / `<ErrorState>`
+  with an inline variant so components can reuse them instead of rolling
+  their own `<CircularProgress>` / `<Alert>` each time.
