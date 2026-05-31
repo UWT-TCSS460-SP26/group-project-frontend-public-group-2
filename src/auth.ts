@@ -31,10 +31,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, account }) {
+      // First sign-in — persist the access token + the expiration the OIDC
+      // provider stamped on it. Auth.js gives us `expires_at` as unix seconds.
       if (account) {
-        token.accessToken = account.access_token;
-        token.idToken = account.id_token;
+        return {
+          ...token,
+          accessToken: account.access_token,
+          idToken: account.id_token,
+          accessTokenExpiresAt: account.expires_at,
+        };
       }
+
+      // Subsequent calls — invalidate the session once the access token has
+      // expired. Auth² does not expose refresh tokens to us, so the user
+      // re-signs in. Returning `null` clears the JWT cookie, so the Header,
+      // /profile, and every write gate see a clean signed-out state — instead
+      // of the broken "looks signed in but every write returns 401" trap.
+      const expiresAt = token.accessTokenExpiresAt as number | undefined;
+      if (typeof expiresAt === "number" && Date.now() / 1000 >= expiresAt) {
+        return null;
+      }
+
       return token;
     },
     async session({ session, token }) {

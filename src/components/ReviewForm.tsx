@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -214,6 +214,8 @@ export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
         }
 
         if (result.error.status === 401) {
+          // Token expired; clear the stale session so the Header + gates flip.
+          await signOut({ redirect: false });
           setSessionExpired(true);
           return;
         }

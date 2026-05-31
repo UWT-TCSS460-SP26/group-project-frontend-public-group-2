@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -104,6 +104,12 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
     setIsSubmitting(false);
 
     if (!result.ok) {
+      if (result.error.status === 401) {
+        // Token expired between render and submit. Clear the stale session so
+        // the gate flips to the sign-in prompt instead of more 401s.
+        await signOut({ redirect: false });
+        return;
+      }
       setErrorMessage(result.error.message);
       return;
     }
@@ -125,6 +131,10 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
     setConfirmOpen(false);
 
     if (!result.ok) {
+      if (result.error.status === 401) {
+        await signOut({ redirect: false });
+        return;
+      }
       setErrorMessage(result.error.message);
       return;
     }
