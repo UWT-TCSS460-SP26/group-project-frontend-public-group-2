@@ -34,9 +34,12 @@ function formatDate(value?: string) {
 }
 
 function ratingTitle(item: EnrichedRatedItem) {
+  // tmdb is required by the OpenAPI schema, but Group 1 actually returns null /
+  // undefined when the TMDB lookup failed (tmdbMissing = true). Guard so a single
+  // un-enriched row doesn't crash the whole profile page.
   return (
-    item.tmdb.title ??
-    item.tmdb.name ??
+    item.tmdb?.title ??
+    item.tmdb?.name ??
     `${mediaLabel(item.mediaType)} ${item.tmdbId}`
   );
 }
@@ -98,7 +101,7 @@ function RatingRow({ item }: { item: EnrichedRatedItem }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const title = ratingTitle(item);
-  const imageUrl = posterUrl(item.tmdb.poster_path);
+  const imageUrl = posterUrl(item.tmdb?.poster_path);
 
   async function saveRating() {
     setError(null);
