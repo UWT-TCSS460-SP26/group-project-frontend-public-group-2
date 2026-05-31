@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -56,6 +56,15 @@ export function ReviewList() {
 
       if (result.ok) {
         notifyReviewDeleted(deleteTarget.id);
+        setDeleteTarget(null);
+        router.refresh();
+        return;
+      }
+
+      if (result.error.status === 401) {
+        // Token expired between render and delete — clear the stale session
+        // and let the server gates pick up the signed-out state.
+        await signOut({ redirect: false });
         setDeleteTarget(null);
         router.refresh();
         return;
