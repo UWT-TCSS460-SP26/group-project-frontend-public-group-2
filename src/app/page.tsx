@@ -97,7 +97,9 @@ export default async function Home() {
           <PopularSection />
         </Suspense>
 
-        {session?.accessToken && (
+        {/* Dev-only access-token debug block. Hidden in production builds so we
+            don't leak a bearer token in server-rendered HTML. */}
+        {process.env.NODE_ENV !== "production" && session?.accessToken && (
           <Box
             component="details"
             sx={{
