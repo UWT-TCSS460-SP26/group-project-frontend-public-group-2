@@ -1,25 +1,30 @@
+"use client";
+
 import Link from "next/link";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import { auth, signIn, signOut } from "@/auth";
+import type { CSSProperties } from "react";
+import { signIn, signOut, useSession } from "next-auth/react";
 
 const navLinks: { label: string; href: string; requireAuth?: boolean }[] = [
   { label: "Search", href: "/search" },
   { label: "Profile", href: "/profile", requireAuth: true },
 ];
 
-const linkResetStyle: React.CSSProperties = {
+const linkResetStyle: CSSProperties = {
   textDecoration: "none",
   color: "inherit",
   display: "inline-flex",
   alignItems: "center",
 };
 
-export async function Header() {
-  const session = await auth();
+export function Header() {
+  const { data: session, status } = useSession();
+  const isAuthenticated =
+    status === "authenticated" && Boolean(session?.user && session.accessToken);
 
   return (
     <AppBar position="sticky">
@@ -56,7 +61,7 @@ export async function Header() {
           }}
         >
           {navLinks
-            .filter((link) => !link.requireAuth || session?.user)
+            .filter((link) => !link.requireAuth || isAuthenticated)
             .map((link) => (
               <Link key={link.href} href={link.href} style={linkResetStyle}>
                 <Typography
@@ -73,7 +78,7 @@ export async function Header() {
             ))}
         </Box>
 
-        {session?.user ? (
+        {isAuthenticated ? (
           <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, md: 2 } }}>
             <Typography
               sx={{
@@ -82,37 +87,29 @@ export async function Header() {
                 color: "text.secondary",
               }}
             >
-              {session.user.email}
+              {session?.user?.email}
             </Typography>
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/" });
+            <Button
+              size="small"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              sx={{
+                color: "text.secondary",
+                "&:hover": { color: "text.primary", backgroundColor: "transparent" },
               }}
             >
-              <Button
-                type="submit"
-                size="small"
-                sx={{
-                  color: "text.secondary",
-                  "&:hover": { color: "text.primary", backgroundColor: "transparent" },
-                }}
-              >
-                Sign out
-              </Button>
-            </form>
+              Sign out
+            </Button>
           </Box>
         ) : (
-          <form
-            action={async () => {
-              "use server";
-              await signIn("tcss460");
-            }}
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            onClick={() => signIn("tcss460")}
+            disabled={status === "loading"}
           >
-            <Button type="submit" variant="contained" color="primary" size="small">
-              Sign In
-            </Button>
-          </form>
+            Sign In
+          </Button>
         )}
       </Toolbar>
     </AppBar>
