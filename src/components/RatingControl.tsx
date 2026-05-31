@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -41,7 +42,10 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
   // Star widget value (0.5–5.0). null = nothing selected yet.
   const [starValue, setStarValue] = useState<number | null>(null);
 
-  const [loadingExisting, setLoadingExisting] = useState(false);
+  // Start in the loading state so we don't briefly flash the empty form while
+  // the existing-rating lookup is in flight. Avoids a synchronous setState
+  // inside useEffect (react-hooks/set-state-in-effect).
+  const [loadingExisting, setLoadingExisting] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -51,7 +55,6 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
   // When authenticated, check whether this user already rated this title.
   useEffect(() => {
     if (status !== "authenticated") return;
-    setLoadingExisting(true);
     getMyRatings().then((result) => {
       setLoadingExisting(false);
       if (!result.ok) return;
@@ -135,11 +138,8 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
 
   return (
     <>
+      {/* "Your rating" heading is owned by the parent section in the detail page. */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-        <Typography variant="overline" sx={{ color: "text.secondary" }}>
-          Your rating
-        </Typography>
-
         <Box
           sx={{
             display: "flex",
@@ -177,9 +177,9 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
         )}
 
         {errorMessage && (
-          <Typography sx={{ color: "error.main", fontSize: "0.85rem" }}>
+          <Alert severity="error" role="alert">
             {errorMessage}
-          </Typography>
+          </Alert>
         )}
 
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>

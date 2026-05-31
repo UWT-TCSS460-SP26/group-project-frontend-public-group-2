@@ -64,7 +64,49 @@ Read-only consumer app:
 - Browse / popular page
 - Movie/show detail page
 
-No writes this sprint (no ratings, no reviews) — those arrive in Sprint 7.
+## Sprint 7 Scope
+
+The app stops being a browser for someone else's data and becomes a place
+where users have a presence. Every authenticated write attaches the bearer
+token from the NextAuth session.
+
+- **Rate a title** — 5-star half-star widget on every detail page, mapped to
+  Group 1's integer 0–10 score. Submit, change, or remove.
+- **Review a title** — accessible MUI form (validated, focus-on-error,
+  field-level server errors mapped from the Zod 400 envelope). On a 409 (the
+  user already reviewed this title), the form flips into edit mode.
+- **Community reviews** — the title's review list renders with **Edit /
+  Delete** buttons on the user's own review.
+- **`/profile` page** — every rating and review the signed-in user owns, with
+  inline edit + delete on each row.
+- **Signed-out gating** — every write affordance is replaced with an inert,
+  accessible "Sign in to *do that*" prompt (`<SignInPrompt>`). No buttons that
+  401 on click. The gate checks the bearer token, not just the user record.
+- **Design cohesion pass** — shared `<SectionHeading>`, unified error
+  rendering (MUI `<Alert>`), consistent button sizing across feature rows.
+  Intentional, not final polish (that's Sprint 8).
+
+### Architecture
+
+Writes go through **Server Actions** ([src/lib/actions/](src/lib/actions/)) —
+not raw client fetches. Each action wraps `fetchGroupOneApi`
+([src/lib/api.ts](src/lib/api.ts)) which handles the bearer token, 204
+no-body responses, and parses both of Group 1's error envelopes into a
+typed `ApiError { status, message, detail?, fieldErrors? }`. Actions return
+an `ActionResult<T>` envelope (`{ ok: true; data } | { ok: false; error }`)
+so structured error fields survive the server-action → client boundary —
+thrown errors get sanitized by Next.js. After a successful mutation the
+client calls `useRouter().refresh()` and the server-rendered detail page
+re-fetches its enriched aggregate (`cache: "no-store"`).
+
+### Where to look
+
+- Server Actions: [src/lib/actions/](src/lib/actions/)
+- Write contract & quirks: [docs/group-1-write-api.md](docs/group-1-write-api.md)
+- Components + patterns (Server Actions, signed-out gating, error mapping):
+  [docs/components.md](docs/components.md)
+- Detail page integration: [src/app/title/[id]/page.tsx](src/app/title/[id]/page.tsx)
+- Profile page: [src/app/profile/page.tsx](src/app/profile/page.tsx)
 
 ## Team
 
