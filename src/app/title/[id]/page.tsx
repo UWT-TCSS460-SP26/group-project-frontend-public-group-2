@@ -4,6 +4,8 @@ import Typography from "@mui/material/Typography";
 import { ErrorState, PageContainer, PageTitle, SignInPrompt } from "@/components";
 import { RatingControl } from "@/components/RatingControl";
 import { ReviewForm } from "@/components/ReviewForm";
+import { ReviewList } from "@/components/ReviewList";
+import { ReviewsProvider } from "@/components/reviews-context";
 import { auth } from "@/auth";
 import { fetchGroupOneApi } from "@/lib/api";
 
@@ -324,80 +326,55 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
         )}
       </Box>
 
-      <Box
-        sx={{
-          mt: 6,
-          pt: 3,
-          borderTop: "1px solid",
-          borderColor: "divider",
-        }}
+      {/* ReviewsProvider coordinates the community list and the review form
+          so an Edit click on a row populates the form, and a delete from the
+          form/list updates the other (Jonathan, J1/J2). */}
+      <ReviewsProvider
+        reviews={recentReviews}
+        tmdbId={id}
+        mediaType={mediaType}
       >
-        <Typography
-          variant="h6"
-          sx={{ mb: 1.5, fontFamily: "var(--font-fraunces), serif" }}
+        <Box
+          sx={{
+            mt: 6,
+            pt: 3,
+            borderTop: "1px solid",
+            borderColor: "divider",
+          }}
         >
-          Community
-        </Typography>
-
-        {averageScore !== undefined && (
-          <Typography sx={{ color: "text.secondary", mb: 1 }}>
-            Average rating: {averageScore.toFixed(1)}
-            {ratingCount !== undefined ? ` (${ratingCount} ratings/reviews)` : ""}
+          <Typography
+            variant="h6"
+            sx={{ mb: 1.5, fontFamily: "var(--font-fraunces), serif" }}
+          >
+            Community
           </Typography>
-        )}
 
-        {recentReviews.length > 0 ? (
-          <Box sx={{ display: "grid", gap: 2, mt: 2 }}>
-            {recentReviews.slice(0, 5).map((review) => (
-              <Box
-                key={String(review.id)}
-                sx={{
-                  p: 2,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 1,
-                  bgcolor: "background.paper",
-                }}
-              >
-                <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
-                  {review.title ?? "Review"}
-                </Typography>
-                <Typography sx={{ color: "text.secondary", mb: 0.5 }}>
-                  {review.description ?? review.body ?? "No review text provided."}
-                </Typography>
-                {(review.author?.displayName || review.createdAt) && (
-                  <Typography sx={{ color: "text.secondary", fontSize: "0.85rem" }}>
-                    {review.author?.displayName ?? "Anonymous"}
-                    {review.createdAt
-                      ? ` • ${new Date(review.createdAt).toLocaleDateString()}`
-                      : ""}
-                  </Typography>
-                )}
-              </Box>
-            ))}
-          </Box>
-        ) : (
-          <Typography sx={{ color: "text.secondary" }}>
-            No community reviews yet.
+          {averageScore !== undefined && (
+            <Typography sx={{ color: "text.secondary", mb: 1 }}>
+              Average rating: {averageScore.toFixed(1)}
+              {ratingCount !== undefined ? ` (${ratingCount} ratings/reviews)` : ""}
+            </Typography>
+          )}
+
+          <ReviewList />
+        </Box>
+
+        {/* Write a review — signed-in users get the form (Jonathan, J1/J2);
+            signed-out visitors get an inert sign-in prompt (Story 5). */}
+        <Box sx={{ mt: 6, pt: 3, borderTop: "1px solid", borderColor: "divider" }}>
+          <Typography
+            variant="h6"
+            sx={{ mb: 1.5, fontFamily: "var(--font-fraunces), serif" }}
+          >
+            Write a review
           </Typography>
-        )}
-      </Box>
-
-      {/* Write a review — signed-in users get the form (Jonathan, J1/J2);
-          signed-out visitors get an inert sign-in prompt (Story 5). */}
-      <Box sx={{ mt: 6, pt: 3, borderTop: "1px solid", borderColor: "divider" }}>
-        <Typography
-          variant="h6"
-          sx={{ mb: 1.5, fontFamily: "var(--font-fraunces), serif" }}
-        >
-          Write a review
-        </Typography>
-        {canWrite ? (
-          <ReviewForm tmdbId={id} mediaType={mediaType} />
-        ) : (
-          <SignInPrompt action="write a review" />
-        )}
-      </Box>
+          {canWrite ? (
+            <ReviewForm tmdbId={id} mediaType={mediaType} />
+          ) : (
+            <SignInPrompt action="write a review" />
+          )}
+        </Box>
+      </ReviewsProvider>
     </PageContainer>
   );
 }
