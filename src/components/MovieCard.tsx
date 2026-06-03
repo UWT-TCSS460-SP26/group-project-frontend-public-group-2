@@ -2,15 +2,22 @@ import Link from "next/link";
 import Image from "next/image";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import { MetaText } from "./MetaText";
 import type { Movie } from "@/types/media";
 import { TMDB_IMG_BASE } from "@/types/media";
 
 interface MovieCardProps {
   movie: Movie;
   hrefPrefix?: string;
+  /** Extra mono meta after the year, e.g. "TV" or a runtime. */
+  metaSuffix?: string;
 }
 
-export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
+export function MovieCard({
+  movie,
+  hrefPrefix = "/title",
+  metaSuffix,
+}: MovieCardProps) {
   const href = `${hrefPrefix}/${movie.id}`;
 
   // poster_path is a relative TMDB path like "/abc123.jpg".
@@ -23,6 +30,7 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
 
   // release_date comes as "YYYY-MM-DD" — display just the year.
   const releaseYear = movie.release_date?.slice(0, 4);
+  const meta = [releaseYear, metaSuffix].filter(Boolean).join(" · ");
 
   return (
     <Link
@@ -31,20 +39,20 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
     >
       <Box
         sx={{
-          transition: "transform 200ms ease, opacity 200ms ease",
-          "&:hover": {
-            transform: "translateY(-2px)",
-            opacity: 0.92,
-          },
+          "&:hover .poster": { transform: "translateY(-3px)" },
+          "&:hover .accent-rule": { transform: "scaleX(1)" },
         }}
       >
         <Box
+          className="poster"
           sx={{
             position: "relative",
             aspectRatio: "2 / 3",
             backgroundColor: "background.paper",
-            mb: 1,
+            border: "1px solid",
+            borderColor: "divider",
             overflow: "hidden",
+            transition: "transform 220ms ease",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -55,7 +63,6 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
               src={posterUrl}
               alt={movie.title}
               fill
-              // Grid is 2 cols (xs) → 3 (sm) → 5–6 (md+); size the request accordingly.
               sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 17vw"
               style={{ objectFit: "cover" }}
             />
@@ -72,9 +79,25 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
             </Typography>
           )}
         </Box>
+
+        {/* Emerald accent rule — grows in on hover (transform only). */}
+        <Box
+          className="accent-rule"
+          aria-hidden
+          sx={{
+            height: "2px",
+            mt: 1,
+            mb: 0.75,
+            backgroundColor: "primary.main",
+            transformOrigin: "left",
+            transform: "scaleX(0)",
+            transition: "transform 220ms ease",
+          }}
+        />
+
         <Typography
           sx={{
-            fontSize: "0.95rem",
+            fontSize: "0.92rem",
             fontWeight: 500,
             lineHeight: 1.25,
             display: "-webkit-box",
@@ -85,16 +108,10 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
         >
           {movie.title}
         </Typography>
-        {releaseYear && (
-          <Typography
-            sx={{
-              mt: 0.25,
-              fontSize: "0.8rem",
-              color: "text.secondary",
-            }}
-          >
-            {releaseYear}
-          </Typography>
+        {meta && (
+          <MetaText sx={{ display: "block", mt: 0.5, textTransform: "uppercase" }}>
+            {meta}
+          </MetaText>
         )}
       </Box>
     </Link>
