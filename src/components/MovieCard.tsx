@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import type { Movie } from "@/types/media";
@@ -39,18 +40,26 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
       >
         <Box
           sx={{
+            position: "relative",
             aspectRatio: "2 / 3",
             backgroundColor: "background.paper",
-            backgroundImage: posterUrl ? `url(${posterUrl})` : undefined,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
             mb: 1,
+            overflow: "hidden",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          {!posterUrl && (
+          {posterUrl ? (
+            <Image
+              src={posterUrl}
+              alt={movie.title}
+              fill
+              // Grid is 2 cols (xs) → 3 (sm) → 5–6 (md+); size the request accordingly.
+              sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 17vw"
+              style={{ objectFit: "cover" }}
+            />
+          ) : (
             <Typography
               sx={{
                 color: "text.secondary",
