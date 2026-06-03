@@ -11,8 +11,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <AppRouterCacheProvider>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        {/* Enables client-side useSession() for signed-in/out gating (Sprint 7, Story 5). */}
-        <SessionProvider>{children}</SessionProvider>
+        {/* Keep auth-aware UI fresh after tab inactivity / provider sleep-wake. */}
+        <SessionProvider
+          refetchOnWindowFocus
+          refetchInterval={60}
+          refetchWhenOffline={false}
+        >
+          {children}
+        </SessionProvider>
       </ThemeProvider>
     </AppRouterCacheProvider>
   );

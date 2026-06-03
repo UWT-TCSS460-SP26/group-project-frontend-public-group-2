@@ -15,8 +15,52 @@ import { EmptyState } from "@/components/EmptyState";
 import { SectionHeading } from "@/components/SectionHeading";
 import { deleteRating, updateRating } from "@/lib/actions/ratings";
 import { deleteReview, updateReview } from "@/lib/actions/reviews";
-import type { EnrichedRatedItem, Review } from "@/types/media";
+import { titleKey, type TitleSummaryByKey } from "@/lib/title-summary";
+import type { EnrichedRatedItem, MediaType, Review } from "@/types/media";
 import { TMDB_IMG_BASE } from "@/types/media";
+
+/** Pick the best display title + poster path for a row, preferring the enriched
+ *  payload from /ratings/me/items when present, then the per-item enrichment we
+ *  fetched ourselves, then a fallback that at least labels the media type. */
+function resolveSummary(
+  mediaType: MediaType,
+  tmdbId: string,
+  enriched: { title?: string; name?: string; poster_path?: string | null } | null | undefined,
+  titles: TitleSummaryByKey,
+): { title: string; posterPath: string | null; releaseYear?: number; resolved: boolean } {
+  const enrichedTitle =
+    typeof enriched?.title === "string" && enriched.title.trim().length > 0
+      ? enriched.title.trim()
+      : typeof enriched?.name === "string" && enriched.name.trim().length > 0
+        ? enriched.name.trim()
+      : undefined;
+  const enrichedPoster =
+    typeof enriched?.poster_path === "string" ? enriched.poster_path : null;
+
+  const lookup = titles[titleKey(mediaType, tmdbId)];
+
+  if (enrichedTitle) {
+    return {
+      title: enrichedTitle,
+      posterPath: enrichedPoster ?? lookup?.posterPath ?? null,
+      releaseYear: lookup?.releaseYear,
+      resolved: true,
+    };
+  }
+  if (lookup) {
+    return {
+      title: lookup.title,
+      posterPath: lookup.posterPath,
+      releaseYear: lookup.releaseYear,
+      resolved: true,
+    };
+  }
+  return {
+    title: `${mediaType === "tv" ? "TV show" : "Movie"} ${tmdbId}`,
+    posterPath: null,
+    resolved: false,
+  };
+}
 
 function mediaLabel(mediaType: string) {
   return mediaType === "tv" ? "TV show" : "Movie";
@@ -31,17 +75,6 @@ function formatDate(value?: string) {
     day: "numeric",
     year: "numeric",
   }).format(date);
-}
-
-function ratingTitle(item: EnrichedRatedItem) {
-  // tmdb is required by the OpenAPI schema, but Group 1 actually returns null /
-  // undefined when the TMDB lookup failed (tmdbMissing = true). Guard so a single
-  // un-enriched row doesn't crash the whole profile page.
-  return (
-    item.tmdb?.title ??
-    item.tmdb?.name ??
-    `${mediaLabel(item.mediaType)} ${item.tmdbId}`
-  );
 }
 
 function posterUrl(path?: string | null) {
@@ -92,7 +125,13 @@ function RowError({ message }: { message: string | null }) {
   );
 }
 
-function RatingRow({ item }: { item: EnrichedRatedItem }) {
+function RatingRow({
+  item,
+  titles,
+}: {
+  item: EnrichedRatedItem;
+  titles: TitleSummaryByKey;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
@@ -100,8 +139,9 @@ function RatingRow({ item }: { item: EnrichedRatedItem }) {
   const [score, setScore] = useState(String(item.score));
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const title = ratingTitle(item);
-  const imageUrl = posterUrl(item.tmdb?.poster_path);
+  const summary = resolveSummary(item.mediaType, item.tmdbId, item.tmdb, titles);
+  const title = summary.title;
+  const imageUrl = posterUrl(summary.posterPath);
 
   async function saveRating() {
     setError(null);
@@ -200,8 +240,9 @@ function RatingRow({ item }: { item: EnrichedRatedItem }) {
             {title}
           </Typography>
           <Typography sx={{ mt: 0.5, color: "text.secondary", fontSize: "0.9rem" }}>
-            {mediaLabel(item.mediaType)} - TMDB {item.tmdbId}
-            {item.tmdbMissing ? " - details unavailable" : ""}
+            {mediaLabel(item.mediaType)}
+            {summary.releaseYear ? ` · ${summary.releaseYear}` : ""}
+            {!summary.resolved ? " · details unavailable" : ""}
           </Typography>
         </Box>
 
@@ -295,7 +336,13 @@ function RatingRow({ item }: { item: EnrichedRatedItem }) {
   );
 }
 
-function ReviewRow({ review }: { review: Review }) {
+function ReviewRow({
+  review,
+  titles,
+}: {
+  review: Review;
+  titles: TitleSummaryByKey;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
@@ -305,7 +352,15 @@ function ReviewRow({ review }: { review: Review }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const date = formatDate(review.updatedAt ?? review.createdAt);
-  const displayTitle = review.title || `${mediaLabel(review.mediaType)} ${review.tmdbId}`;
+  const summary = resolveSummary(review.mediaType, review.tmdbId, null, titles);
+  const imageUrl = posterUrl(summary.posterPath);
+  // Group 1 stamps "Review of {tmdbId}" when the user posts with no title; we
+  // hide that since the resolved movie title is more useful as the heading.
+  const userTitle =
+    review.title && review.title !== `Review of ${review.tmdbId}`
+      ? review.title.trim()
+      : "";
+  const displayTitle = summary.title;
 
   async function saveReview() {
     setError(null);
@@ -378,39 +433,84 @@ function ReviewRow({ review }: { review: Review }) {
           />
         </Box>
       ) : (
-        <>
-          <Typography
-            component={Link}
-            href={`/title/${review.tmdbId}`}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "72px 1fr", sm: "88px 1fr" },
+            gap: 2,
+            alignItems: "start",
+          }}
+        >
+          <Box
             sx={{
-              color: "inherit",
-              textDecoration: "none",
-              fontWeight: 700,
-              "&:hover": { color: "primary.main" },
+              width: "100%",
+              aspectRatio: "2 / 3",
+              borderRadius: 1,
+              border: "1px solid",
+              borderColor: "divider",
+              bgcolor: "background.default",
+              backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            {displayTitle}
-          </Typography>
-          <Typography
-            sx={{
-              mt: 1,
-              color: "text.secondary",
-              lineHeight: 1.6,
-              display: "-webkit-box",
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {review.description || "No review text provided."}
-          </Typography>
-        </>
-      )}
+            {!imageUrl && (
+              <Typography sx={{ color: "text.secondary", fontSize: "0.75rem" }}>
+                no poster
+              </Typography>
+            )}
+          </Box>
 
-      <Typography sx={{ mt: 1, color: "text.secondary", fontSize: "0.85rem" }}>
-        {mediaLabel(review.mediaType)} - TMDB {review.tmdbId}
-        {date ? ` - ${date}` : ""}
-      </Typography>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              component={Link}
+              href={`/title/${review.tmdbId}`}
+              sx={{
+                color: "inherit",
+                textDecoration: "none",
+                fontWeight: 700,
+                "&:hover": { color: "primary.main" },
+              }}
+            >
+              {displayTitle}
+            </Typography>
+            {userTitle && (
+              <Typography
+                sx={{
+                  mt: 0.5,
+                  color: "text.secondary",
+                  fontSize: "0.9rem",
+                  fontStyle: "italic",
+                }}
+              >
+                {userTitle}
+              </Typography>
+            )}
+            <Typography
+              sx={{
+                mt: 1,
+                color: "text.secondary",
+                lineHeight: 1.6,
+                display: "-webkit-box",
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+            >
+              {review.description || "No review text provided."}
+            </Typography>
+            <Typography sx={{ mt: 1, color: "text.secondary", fontSize: "0.85rem" }}>
+              {mediaLabel(review.mediaType)}
+              {summary.releaseYear ? ` · ${summary.releaseYear}` : ""}
+              {!summary.resolved ? ` · TMDB ${review.tmdbId}` : ""}
+              {date ? ` · ${date}` : ""}
+            </Typography>
+          </Box>
+        </Box>
+      )}
 
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 2 }}>
         {editing ? (
@@ -476,11 +576,13 @@ function ReviewRow({ review }: { review: Review }) {
 export function ProfileRows({
   ratings,
   reviews,
+  titles,
   ratingsError,
   reviewsError,
 }: {
   ratings: EnrichedRatedItem[];
   reviews: Review[];
+  titles: TitleSummaryByKey;
   ratingsError?: string;
   reviewsError?: string;
 }) {
@@ -500,7 +602,7 @@ export function ProfileRows({
         ) : hasRatings ? (
           <Box sx={{ display: "grid", gap: 2 }}>
             {ratings.map((item) => (
-              <RatingRow key={item.id} item={item} />
+              <RatingRow key={item.id} item={item} titles={titles} />
             ))}
           </Box>
         ) : (
@@ -521,11 +623,11 @@ export function ProfileRows({
           <Alert severity="error">{reviewsError}</Alert>
         ) : hasReviews ? (
           <Box sx={{ display: "grid", gap: 2 }}>
-            {/* /reviews/me is intentionally thin, so this list renders only
-                the returned review fields and links to the detail route
-                instead of issuing one enrichment request per row. */}
+            {/* /reviews/me is intentionally thin. The titles map carries
+                the per-id title + poster we resolved in profile/page.tsx
+                via /movies/{id} and /tv/{id}. */}
             {reviews.map((review) => (
-              <ReviewRow key={review.id} review={review} />
+              <ReviewRow key={review.id} review={review} titles={titles} />
             ))}
           </Box>
         ) : (

@@ -256,6 +256,7 @@ export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
       }
 
       if (result.error.status === 401) {
+        await signOut({ redirect: false });
         setSessionExpired(true);
         return;
       }
