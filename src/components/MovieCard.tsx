@@ -3,7 +3,8 @@ import Image from "next/image";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { MetaText } from "./MetaText";
-import type { Movie } from "@/types/media";
+import { WatchlistButton } from "./WatchlistButton";
+import type { Movie, MediaType } from "@/types/media";
 import { TMDB_IMG_BASE } from "@/types/media";
 
 interface MovieCardProps {
@@ -11,12 +12,15 @@ interface MovieCardProps {
   hrefPrefix?: string;
   /** Extra mono meta after the year, e.g. "TV" or a runtime. */
   metaSuffix?: string;
+  /** Used for the watchlist entry; defaults to "movie". */
+  mediaType?: MediaType;
 }
 
 export function MovieCard({
   movie,
   hrefPrefix = "/title",
   metaSuffix,
+  mediaType = "movie",
 }: MovieCardProps) {
   const href = `${hrefPrefix}/${movie.id}`;
 
@@ -41,6 +45,7 @@ export function MovieCard({
         sx={{
           "&:hover .poster": { transform: "translateY(-3px)" },
           "&:hover .accent-rule": { transform: "scaleX(1)" },
+          "&:hover .poster-overlay, &:focus-within .poster-overlay": { opacity: 1 },
         }}
       >
         <Box
@@ -78,6 +83,32 @@ export function MovieCard({
               no poster
             </Typography>
           )}
+
+          {/* Watchlist toggle — revealed on hover/focus, always shown on touch. */}
+          <Box
+            className="poster-overlay"
+            sx={{
+              position: "absolute",
+              top: 6,
+              right: 6,
+              bgcolor: "background.paper",
+              border: "1px solid",
+              borderColor: "divider",
+              opacity: 0,
+              transition: "opacity 160ms ease",
+              "@media (hover: none)": { opacity: 1 },
+            }}
+          >
+            <WatchlistButton
+              item={{
+                id: movie.id,
+                mediaType,
+                title: movie.title,
+                posterPath: movie.poster_path,
+                year: releaseYear,
+              }}
+            />
+          </Box>
         </Box>
 
         {/* Emerald accent rule — grows in on hover (transform only). */}
