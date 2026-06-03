@@ -1,9 +1,8 @@
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import Image from "next/image";
 import {
+  ButtonLink,
   EmptyState,
   ErrorState,
   Marquee,
@@ -123,8 +122,7 @@ export default async function Home() {
                   {featured.overview}
                 </Typography>
               )}
-              <Button
-                component={Link}
+              <ButtonLink
                 href={`/title/${featured.id}`}
                 variant="contained"
                 color="primary"
@@ -137,7 +135,7 @@ export default async function Home() {
                 }}
               >
                 View →
-              </Button>
+              </ButtonLink>
             </Box>
 
             <Box

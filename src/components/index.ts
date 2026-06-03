@@ -20,3 +20,4 @@ export { Marquee } from "./Marquee";
 export { Numeral } from "./Numeral";
 export { GenreChip } from "./GenreChip";
 export { CardSkeleton, RailSkeleton } from "./CardSkeleton";
+export { ButtonLink } from "./ButtonLink";
