@@ -10,6 +10,7 @@ import {
   MovieCard,
   Numeral,
   PageContainer,
+  Reveal,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
 import { TMDB_IMG_BASE } from "@/types/media";
@@ -187,8 +188,10 @@ export default async function Home() {
               gap: { xs: 2, md: 3 },
             }}
           >
-            {rest.map((movie) => (
-              <MovieCard key={movie.id} movie={movie} />
+            {rest.map((movie, index) => (
+              <Reveal key={movie.id} index={index}>
+                <MovieCard movie={movie} />
+              </Reveal>
             ))}
           </Box>
         </Box>

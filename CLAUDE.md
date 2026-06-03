@@ -106,6 +106,16 @@ After a successful write in a client component, call `useRouter().refresh()` to 
 - Buttons: no shadows, no uppercase transform (already set in theme overrides)
 - Fonts: Inter (body) and Fraunces (all `h1`–`h6`) are loaded via `next/font` and exposed as CSS vars `--font-inter` / `--font-fraunces`
 
+### Motion (60fps contract)
+
+All animation is **`transform` + `opacity` only** — never `width`/`height`/`top`/`left`/`margin` (those trigger layout/jank). Drive any JS animation with `requestAnimationFrame`; use `will-change` only while animating, then drop it. Target ~16.6ms/frame; if a transition stutters on a throttled CPU, ship it static.
+
+Everything respects reduced motion: gate animations behind `@media (prefers-reduced-motion: no-preference)` (see `Reveal`, `Marquee`, `WatchlistButton`), and `globals.css` also neutralizes any leftover animations/transitions globally under `prefers-reduced-motion: reduce`.
+
+Building blocks: `<Reveal index={i}>` (staggered grid/rail entrance), `CardSkeleton`/`RailSkeleton` (transform shimmer), the `Marquee` ticker, the `app/template.tsx` route cross-fade, and `viewTransitionName()` (`@/lib/view-transition`) for the shared-element poster morph (RU-11; needs `experimental.viewTransition`, already set in `next.config.ts`).
+
+**Banned:** auto-playing carousels, parallax for its own sake, long/bouncy easings, anything that animates layout or blocks interaction.
+
 ### Component conventions
 
 All shared components live in `src/components/` and are re-exported from the barrel `src/components/index.ts`. Import like:
