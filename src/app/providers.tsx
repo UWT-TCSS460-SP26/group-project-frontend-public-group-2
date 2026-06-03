@@ -9,7 +9,7 @@ import { theme } from "@/theme";
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <AppRouterCacheProvider>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider theme={theme} defaultMode="light" disableTransitionOnChange>
         <CssBaseline />
         {/* Keep auth-aware UI fresh after tab inactivity / provider sleep-wake. */}
         <SessionProvider

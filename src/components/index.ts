@@ -11,3 +11,5 @@ export { ErrorState } from "./ErrorState";
 export { SignInPrompt } from "./SignInPrompt";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { RatingControl } from "./RatingControl";
+export { ThemeToggle } from "./ThemeToggle";
+export { GrainOverlay } from "./GrainOverlay";

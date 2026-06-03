@@ -8,6 +8,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import type { CSSProperties } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
+import { ThemeToggle } from "./ThemeToggle";
 
 const navLinks: { label: string; href: string; requireAuth?: boolean }[] = [
   { label: "Search", href: "/search" },
@@ -78,39 +79,48 @@ export function Header() {
             ))}
         </Box>
 
-        {isAuthenticated ? (
-          <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, md: 2 } }}>
-            <Typography
-              sx={{
-                display: { xs: "none", sm: "block" },
-                fontSize: "0.85rem",
-                color: "text.secondary",
-              }}
+        {/* Right cluster: theme toggle + auth. RU-6 will formalize this header. */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, md: 1 } }}>
+          <ThemeToggle />
+          {isAuthenticated ? (
+            <Box
+              sx={{ display: "flex", alignItems: "center", gap: { xs: 1, md: 2 } }}
             >
-              {session?.user?.email}
-            </Typography>
+              <Typography
+                sx={{
+                  display: { xs: "none", sm: "block" },
+                  fontSize: "0.85rem",
+                  color: "text.secondary",
+                }}
+              >
+                {session?.user?.email}
+              </Typography>
+              <Button
+                size="small"
+                onClick={() => signOut({ callbackUrl: "/" })}
+                sx={{
+                  color: "text.secondary",
+                  "&:hover": {
+                    color: "text.primary",
+                    backgroundColor: "transparent",
+                  },
+                }}
+              >
+                Sign out
+              </Button>
+            </Box>
+          ) : (
             <Button
+              variant="contained"
+              color="primary"
               size="small"
-              onClick={() => signOut({ callbackUrl: "/" })}
-              sx={{
-                color: "text.secondary",
-                "&:hover": { color: "text.primary", backgroundColor: "transparent" },
-              }}
+              onClick={() => signIn("tcss460")}
+              disabled={status === "loading"}
             >
-              Sign out
+              Sign In
             </Button>
-          </Box>
-        ) : (
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            onClick={() => signIn("tcss460")}
-            disabled={status === "loading"}
-          >
-            Sign In
-          </Button>
-        )}
+          )}
+        </Box>
       </Toolbar>
     </AppBar>
   );
