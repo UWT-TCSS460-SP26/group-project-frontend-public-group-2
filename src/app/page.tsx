@@ -1,21 +1,29 @@
-import { Suspense } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { auth } from "@/auth";
+import Link from "next/link";
+import Image from "next/image";
 import {
   EmptyState,
   ErrorState,
-  Hero,
-  LoadingState,
+  Marquee,
+  MetaText,
+  MovieCard,
+  Numeral,
   PageContainer,
-  PopularGrid,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
+import { TMDB_IMG_BASE } from "@/types/media";
 import type { SearchResults } from "@/types/media";
 
-async function PopularSection() {
+// Server-render on demand so the popular feed is fresh and the build never blocks
+// on Group 1's API. (Caching/ISR can be tuned in the perf pass, RU-10.)
+export const dynamic = "force-dynamic";
+
+// Editorial "Repertory" reference home: a NOW SHOWING marquee, a numbered serif
+// featured film, and an editorial grid of popular titles. Wired to the popular feed;
+// Mani's lane (MA-2/3/4) layers the community + TV rails, states, and features on top.
+export default async function Home() {
   let data: SearchResults | null = null;
   let errorDetail: string | null = null;
   try {
@@ -29,107 +37,163 @@ async function PopularSection() {
 
   if (errorDetail) {
     return (
-      <ErrorState
-        message="Popular titles are unavailable."
-        detail={errorDetail}
-      />
+      <PageContainer>
+        <ErrorState message="Popular titles are unavailable." detail={errorDetail} />
+      </PageContainer>
     );
   }
 
   if (!data || data.results.length === 0) {
     return (
-      <EmptyState
-        message="Catalog is being prepared."
-        detail="Popular titles will appear here shortly."
-      />
+      <PageContainer>
+        <EmptyState
+          message="Catalog is being prepared."
+          detail="Popular titles will appear here shortly."
+        />
+      </PageContainer>
     );
   }
 
-  return <PopularGrid movies={data.results} />;
-}
-
-export default async function Home() {
-  const session = await auth();
+  const movies = data.results;
+  const featured = movies[0];
+  const rest = movies.slice(1);
+  const marqueeItems = movies.slice(0, 12).map((m) => m.title);
+  const featuredYear = featured.release_date?.slice(0, 4);
+  const featuredPoster = featured.poster_path
+    ? featured.poster_path.startsWith("http")
+      ? featured.poster_path
+      : `${TMDB_IMG_BASE}${featured.poster_path}`
+    : null;
 
   return (
     <>
-      <Hero
-        eyebrow="Featured"
-        title="Find your next watch."
-        blurb="Search, browse, and discover movies and shows pulled live from our upstream partner's catalog."
-      />
+      <Marquee items={marqueeItems} label="Now Showing" />
+
       <PageContainer>
-        <Box
-          component="form"
-          action="/search"
-          method="GET"
-          sx={{
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            gap: 1.5,
-            alignItems: { sm: "center" },
-            mb: { xs: 5, md: 6 },
-          }}
-        >
-          <TextField
-            name="q"
-            variant="outlined"
-            fullWidth
-            placeholder="Search titles, genres, and more"
-            aria-label="Search for movies or shows"
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            sx={{
-              alignSelf: { xs: "stretch", sm: "auto" },
-              whiteSpace: "nowrap",
-              px: 2.5,
-            }}
-          >
-            Search →
-          </Button>
-        </Box>
+        {/* 01 · Featured */}
+        <Box component="section" sx={{ mb: { xs: 8, md: 12 } }}>
+          <Box sx={{ display: "flex", alignItems: "baseline", gap: 2, mb: { xs: 3, md: 4 } }}>
+            <Numeral value={1} sx={{ fontSize: { xs: "2rem", md: "2.5rem" } }} />
+            <MetaText sx={{ letterSpacing: "0.18em", textTransform: "uppercase" }}>
+              Featured
+            </MetaText>
+            <Box sx={{ flex: 1, height: "1px", backgroundColor: "divider" }} />
+          </Box>
 
-        <Suspense
-          fallback={<LoadingState message="Loading popular titles..." />}
-        >
-          <PopularSection />
-        </Suspense>
-
-        {/* Dev-only access-token debug block. Hidden in production builds so we
-            don't leak a bearer token in server-rendered HTML. */}
-        {process.env.NODE_ENV !== "production" && session?.accessToken && (
           <Box
-            component="details"
             sx={{
-              mt: { xs: 8, md: 12 },
-              color: "text.secondary",
-              fontSize: "0.85rem",
-              maxWidth: 720,
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "1.4fr 1fr" },
+              gap: { xs: 4, md: 6 },
+              alignItems: "center",
             }}
           >
-            <Box component="summary" sx={{ cursor: "pointer", mb: 1 }}>
-              Dev: access token (paste into jwt.io to verify iss + aud)
+            <Box>
+              <Typography
+                variant="h1"
+                sx={{ fontSize: { xs: "2.5rem", sm: "3.25rem", md: "4rem" }, mb: 2 }}
+              >
+                {featured.title}
+              </Typography>
+              {featuredYear && (
+                <MetaText
+                  sx={{
+                    display: "block",
+                    mb: 3,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {featuredYear} · Movie
+                </MetaText>
+              )}
+              {featured.overview && (
+                <Typography
+                  sx={{
+                    color: "text.secondary",
+                    lineHeight: 1.7,
+                    maxWidth: 520,
+                    mb: 4,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 4,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {featured.overview}
+                </Typography>
+              )}
+              <Button
+                component={Link}
+                href={`/title/${featured.id}`}
+                variant="contained"
+                color="primary"
+                sx={{
+                  fontFamily: "var(--font-mono), ui-monospace, monospace",
+                  fontSize: "0.75rem",
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  px: 2.5,
+                }}
+              >
+                View →
+              </Button>
             </Box>
-            <Typography
-              component="pre"
+
+            <Box
               sx={{
-                fontFamily: "monospace",
-                fontSize: "0.72rem",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-all",
-                bgcolor: "background.paper",
+                position: "relative",
+                aspectRatio: "2 / 3",
+                width: "100%",
+                maxWidth: { xs: 280, md: "none" },
+                mx: { xs: "auto", md: 0 },
                 border: "1px solid",
                 borderColor: "divider",
-                p: 2,
-                borderRadius: 1,
+                overflow: "hidden",
+                bgcolor: "background.paper",
               }}
             >
-              {session.accessToken}
-            </Typography>
+              {featuredPoster && (
+                <Image
+                  src={featuredPoster}
+                  alt={featured.title}
+                  fill
+                  priority
+                  sizes="(max-width: 900px) 280px, 33vw"
+                  style={{ objectFit: "cover" }}
+                />
+              )}
+            </Box>
           </Box>
-        )}
+        </Box>
+
+        {/* 02 · Popular this week */}
+        <Box component="section">
+          <Box sx={{ display: "flex", alignItems: "baseline", gap: 2, mb: { xs: 3, md: 4 } }}>
+            <Numeral value={2} sx={{ fontSize: { xs: "2rem", md: "2.5rem" } }} />
+            <Typography variant="h2" sx={{ fontSize: { xs: "1.5rem", md: "1.85rem" } }}>
+              Popular this week
+            </Typography>
+            <Box sx={{ flex: 1, height: "1px", backgroundColor: "divider" }} />
+          </Box>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(2, 1fr)",
+                sm: "repeat(3, 1fr)",
+                md: "repeat(5, 1fr)",
+                lg: "repeat(6, 1fr)",
+              },
+              gap: { xs: 2, md: 3 },
+            }}
+          >
+            {rest.map((movie) => (
+              <MovieCard key={movie.id} movie={movie} />
+            ))}
+          </Box>
+        </Box>
       </PageContainer>
     </>
   );
