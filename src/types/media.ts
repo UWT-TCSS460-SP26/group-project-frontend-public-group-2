@@ -125,7 +125,8 @@ export interface MyReviewsResponse {
 /**
  * GET /ratings/me/items — the authenticated user's ratings enriched with TMDB
  * metadata. Use this for the profile ratings list. `tmdbMissing` is true when
- * the TMDB lookup failed (then `tmdb` may be empty).
+ * the TMDB lookup failed; in that case Group 1 may omit `tmdb` entirely or
+ * return it as `null`, so consumers must guard against both.
  */
 export interface EnrichedRatedItem {
   id: number;
@@ -134,12 +135,12 @@ export interface EnrichedRatedItem {
   mediaType: MediaType;
   tmdbMissing: boolean;
   author: Author;
-  tmdb: {
+  tmdb?: {
     title?: string;
     name?: string;
     poster_path?: string | null;
     [key: string]: unknown;
-  };
+  } | null;
 }
 
 /** GET /ratings/media/{mediaType}/{tmdbId} — community ratings + aggregate. */

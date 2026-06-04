@@ -1,15 +1,27 @@
 import Link from "next/link";
+import Image from "next/image";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import type { Movie } from "@/types/media";
+import { MetaText } from "./MetaText";
+import { WatchlistButton } from "./WatchlistButton";
+import type { Movie, MediaType } from "@/types/media";
 import { TMDB_IMG_BASE } from "@/types/media";
 
 interface MovieCardProps {
   movie: Movie;
   hrefPrefix?: string;
+  /** Extra mono meta after the year, e.g. "TV" or a runtime. */
+  metaSuffix?: string;
+  /** Used for the watchlist entry; defaults to "movie". */
+  mediaType?: MediaType;
 }
 
-export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
+export function MovieCard({
+  movie,
+  hrefPrefix = "/title",
+  metaSuffix,
+  mediaType = "movie",
+}: MovieCardProps) {
   const href = `${hrefPrefix}/${movie.id}`;
 
   // poster_path is a relative TMDB path like "/abc123.jpg".
@@ -22,6 +34,7 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
 
   // release_date comes as "YYYY-MM-DD" — display just the year.
   const releaseYear = movie.release_date?.slice(0, 4);
+  const meta = [releaseYear, metaSuffix].filter(Boolean).join(" · ");
 
   return (
     <Link
@@ -30,27 +43,35 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
     >
       <Box
         sx={{
-          transition: "transform 200ms ease, opacity 200ms ease",
-          "&:hover": {
-            transform: "translateY(-2px)",
-            opacity: 0.92,
-          },
+          "&:hover .poster": { transform: "translateY(-3px)" },
+          "&:hover .accent-rule": { transform: "scaleX(1)" },
+          "&:hover .poster-overlay, &:focus-within .poster-overlay": { opacity: 1 },
         }}
       >
         <Box
+          className="poster"
           sx={{
+            position: "relative",
             aspectRatio: "2 / 3",
             backgroundColor: "background.paper",
-            backgroundImage: posterUrl ? `url(${posterUrl})` : undefined,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            mb: 1,
+            border: "1px solid",
+            borderColor: "divider",
+            overflow: "hidden",
+            transition: "transform 220ms ease",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          {!posterUrl && (
+          {posterUrl ? (
+            <Image
+              src={posterUrl}
+              alt={movie.title}
+              fill
+              sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 17vw"
+              style={{ objectFit: "cover" }}
+            />
+          ) : (
             <Typography
               sx={{
                 color: "text.secondary",
@@ -62,10 +83,52 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
               no poster
             </Typography>
           )}
+
+          {/* Watchlist toggle — revealed on hover/focus, always shown on touch. */}
+          <Box
+            className="poster-overlay"
+            sx={{
+              position: "absolute",
+              top: 6,
+              right: 6,
+              bgcolor: "background.paper",
+              border: "1px solid",
+              borderColor: "divider",
+              opacity: 0,
+              transition: "opacity 160ms ease",
+              "@media (hover: none)": { opacity: 1 },
+            }}
+          >
+            <WatchlistButton
+              item={{
+                id: movie.id,
+                mediaType,
+                title: movie.title,
+                posterPath: movie.poster_path,
+                year: releaseYear,
+              }}
+            />
+          </Box>
         </Box>
+
+        {/* Emerald accent rule — grows in on hover (transform only). */}
+        <Box
+          className="accent-rule"
+          aria-hidden
+          sx={{
+            height: "2px",
+            mt: 1,
+            mb: 0.75,
+            backgroundColor: "primary.main",
+            transformOrigin: "left",
+            transform: "scaleX(0)",
+            transition: "transform 220ms ease",
+          }}
+        />
+
         <Typography
           sx={{
-            fontSize: "0.95rem",
+            fontSize: "0.92rem",
             fontWeight: 500,
             lineHeight: 1.25,
             display: "-webkit-box",
@@ -76,16 +139,10 @@ export function MovieCard({ movie, hrefPrefix = "/title" }: MovieCardProps) {
         >
           {movie.title}
         </Typography>
-        {releaseYear && (
-          <Typography
-            sx={{
-              mt: 0.25,
-              fontSize: "0.8rem",
-              color: "text.secondary",
-            }}
-          >
-            {releaseYear}
-          </Typography>
+        {meta && (
+          <MetaText sx={{ display: "block", mt: 0.5, textTransform: "uppercase" }}>
+            {meta}
+          </MetaText>
         )}
       </Box>
     </Link>

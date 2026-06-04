@@ -4,6 +4,31 @@ declare module "next-auth" {
   interface Session {
     accessToken?: string;
     idToken?: string;
+    accessTokenExpiresAt?: number;
+  }
+}
+
+function decodeJwtExp(token?: string): number | undefined {
+  if (!token) return undefined;
+  const parts = token.split(".");
+  if (parts.length < 2) return undefined;
+  try {
+    const payload = parts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+    const parsed = JSON.parse(
+      Buffer.from(payload, "base64").toString("utf8"),
+    ) as { exp?: unknown };
+    const exp =
+      typeof parsed.exp === "number"
+        ? parsed.exp
+        : typeof parsed.exp === "string"
+          ? Number(parsed.exp)
+          : NaN;
+    return Number.isFinite(exp) ? exp : undefined;
+  } catch {
+    return undefined;
   }
 }
 
@@ -32,13 +57,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, account }) {
       // First sign-in — persist the access token + the expiration the OIDC
-      // provider stamped on it. Auth.js gives us `expires_at` as unix seconds.
+      // provider stamped on it. Some providers omit `expires_at`, so we fall
+      // back to `expires_in` and then the JWT's own `exp` claim.
       if (account) {
+        const accessToken = account.access_token;
+        if (!accessToken) return null;
+
+        const expiresAt =
+          (typeof account.expires_at === "number" ? account.expires_at : undefined)
+          ?? (typeof account.expires_in === "number"
+            ? Math.floor(Date.now() / 1000) + account.expires_in
+            : undefined)
+          ?? decodeJwtExp(accessToken)
+          ?? decodeJwtExp(account.id_token ?? undefined);
+
         return {
           ...token,
-          accessToken: account.access_token,
+          accessToken,
           idToken: account.id_token,
-          accessTokenExpiresAt: account.expires_at,
+          accessTokenExpiresAt: expiresAt,
         };
       }
 
@@ -47,9 +84,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // re-signs in. Returning `null` clears the JWT cookie, so the Header,
       // /profile, and every write gate see a clean signed-out state — instead
       // of the broken "looks signed in but every write returns 401" trap.
-      const expiresAt = token.accessTokenExpiresAt as number | undefined;
-      if (typeof expiresAt === "number" && Date.now() / 1000 >= expiresAt) {
+      const accessToken = token.accessToken as string | undefined;
+      if (!accessToken) return null;
+
+      const expiresAt =
+        (typeof token.accessTokenExpiresAt === "number"
+          ? token.accessTokenExpiresAt
+          : undefined)
+        ?? decodeJwtExp(accessToken)
+        ?? decodeJwtExp(token.idToken as string | undefined);
+
+      // Small skew buffer so we don't render authenticated UI at the exact
+      // expiry boundary and fail immediately on the next write request.
+      if (typeof expiresAt === "number" && Date.now() / 1000 >= expiresAt - 30) {
         return null;
+      }
+
+      if (typeof token.accessTokenExpiresAt !== "number" && expiresAt) {
+        return { ...token, accessTokenExpiresAt: expiresAt };
       }
 
       return token;
@@ -57,6 +109,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       session.accessToken = token.accessToken as string | undefined;
       session.idToken = token.idToken as string | undefined;
+      session.accessTokenExpiresAt = token.accessTokenExpiresAt as number | undefined;
       return session;
     },
   },

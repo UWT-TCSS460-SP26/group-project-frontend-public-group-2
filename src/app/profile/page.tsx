@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { EmptyState, PageContainer, PageTitle, SignInPrompt } from "@/components";
 import { getMyRatings } from "@/lib/actions/ratings";
 import { getMyReviews } from "@/lib/actions/reviews";
+import { enrichTitles } from "@/lib/enrich-titles";
 import { ProfileRows } from "./ProfileRows";
 
 export const metadata: Metadata = { title: "Profile - Group 2" };
@@ -36,6 +37,15 @@ export default async function ProfilePage() {
   const hasRatings = ratings.length > 0;
   const hasReviews = reviews.length > 0;
 
+  // Group 1's bulk enrichment is unreliable and /reviews/me is never enriched,
+  // so we resolve titles + posters per row from the per-item read routes (deduped,
+  // parallel, fresh per request). Without this users see "Movie 1234567 —
+  // details unavailable" + "no poster" instead of the actual title and artwork.
+  const titles = await enrichTitles([
+    ...ratings.map((r) => ({ mediaType: r.mediaType, tmdbId: r.tmdbId })),
+    ...reviews.map((r) => ({ mediaType: r.mediaType, tmdbId: r.tmdbId })),
+  ]);
+
   return (
     <PageContainer>
       <PageTitle
@@ -52,6 +62,7 @@ export default async function ProfilePage() {
         <ProfileRows
           ratings={ratings}
           reviews={reviews}
+          titles={titles}
           ratingsError={ratingsResult.ok ? undefined : ratingsResult.error.message}
           reviewsError={reviewsResult.ok ? undefined : reviewsResult.error.message}
         />

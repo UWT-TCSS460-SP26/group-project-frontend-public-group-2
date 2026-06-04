@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { Inter, Fraunces } from "next/font/google";
+import { Inter, Fraunces, IBM_Plex_Mono } from "next/font/google";
+import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
+import Box from "@mui/material/Box";
 import "./globals.css";
 import { Providers } from "./providers";
-import { Header } from "@/components";
+import { Footer, GrainOverlay, Header } from "@/components";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -16,9 +18,18 @@ const fraunces = Fraunces({
   display: "swap",
 });
 
+// Monospace for editorial meta (years, runtime, genres, catalog numbers) — see MetaText.
+const mono = IBM_Plex_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Group 2 Consumer App",
-  description: "TCSS 460 Sprint 6 consumer app — signs in via Auth² and consumes Group 1's API.",
+  title: "Group 2 · Movies & TV",
+  description:
+    "Browse, search, and keep a watchlist of the films and shows worth your time.",
 };
 
 export default function RootLayout({
@@ -27,11 +38,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${fraunces.variable} ${mono.variable}`}
+    >
       <body>
+        {/* Sets the color-scheme class on <html> before paint → no theme flash. */}
+        <InitColorSchemeScript attribute="class" defaultMode="light" />
         <Providers>
-          <Header />
-          {children}
+          <a href="#main-content" className="skip-link">
+            Skip to content
+          </a>
+          <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
+            <Header />
+            <GrainOverlay />
+            <Box component="main" id="main-content" tabIndex={-1} sx={{ flex: 1 }}>
+              {children}
+            </Box>
+            <Footer />
+          </Box>
         </Providers>
       </body>
     </html>
