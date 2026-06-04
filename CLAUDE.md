@@ -104,13 +104,15 @@ After a successful write in a client component, call `useRouter().refresh()` to 
 - No hardcoded hex colors — reference `theme.palette.*` via `sx`
 - No Tailwind classes (Tailwind is installed but not actively used)
 - Buttons: no shadows, no uppercase transform (already set in theme overrides)
-- Fonts: Inter (body) and Fraunces (all `h1`–`h6`) are loaded via `next/font` and exposed as CSS vars `--font-inter` / `--font-fraunces`
+- Fonts: Inter (body), Fraunces (`h1`–`h6` / display), and IBM Plex Mono (meta — years, runtime, genres) via `next/font`, exposed as `--font-inter` / `--font-fraunces` / `--font-mono`. Use `<MetaText>` for mono meta.
+
+**Identity — "Repertory, evolved":** warm editorial cinema. **Light (gallery) is the default**, dark (cinema) via the header toggle — both ship through MUI's `colorSchemes` CSS-variables API (`colorSchemeSelector: "class"`, no-flash via `InitColorSchemeScript`). Brand accent is **deep emerald** (`primary`); title pages can additionally adopt the poster's color. Subtle film grain (`<GrainOverlay>`), full-bleed imagery with dark scrims. The live **`/styleguide`** page (dev-only) shows every token + component in both modes.
 
 ### Motion (60fps contract)
 
 All animation is **`transform` + `opacity` only** — never `width`/`height`/`top`/`left`/`margin` (those trigger layout/jank). Drive any JS animation with `requestAnimationFrame`; use `will-change` only while animating, then drop it. Target ~16.6ms/frame; if a transition stutters on a throttled CPU, ship it static.
 
-Everything respects reduced motion: gate animations behind `@media (prefers-reduced-motion: no-preference)` (see `Reveal`, `Marquee`, `WatchlistButton`), and `globals.css` also neutralizes any leftover animations/transitions globally under `prefers-reduced-motion: reduce`.
+Keyframes live in **`globals.css`** (e.g. `repertory-marquee`, `reveal-up`) — defining them globally rather than inline in `sx` avoids emotion mis-scoping the animation name (that bug silently froze the marquee). Note: the global `prefers-reduced-motion: reduce` blanket freeze was **removed** — it was freezing the signature marquee + stagger — so motion runs for everyone, kept gentle and pausable (the marquee pauses on hover). If strict reduced-motion respect is wanted later, add an in-app toggle, not the OS-based blanket reset.
 
 Building blocks: `<Reveal index={i}>` (staggered grid/rail entrance), `CardSkeleton`/`RailSkeleton` (transform shimmer), the `Marquee` ticker, the `app/template.tsx` route cross-fade, and `viewTransitionName()` (`@/lib/view-transition`) for the shared-element poster morph (RU-11; needs `experimental.viewTransition`, already set in `next.config.ts`).
 
@@ -122,13 +124,14 @@ All shared components live in `src/components/` and are re-exported from the bar
 
 ```tsx
 import {
-  Header, Hero, PopularGrid, PageContainer, PageTitle,
-  MovieCard, EmptyState, LoadingState, ErrorState,
-  SignInPrompt, ConfirmDialog, RatingControl,
+  Header, Footer, PageContainer, PageTitle, SectionHeading,
+  MovieCard, Rail, Marquee, Numeral, StatBadge, GenreChip, MetaText,
+  CardSkeleton, RailSkeleton, Reveal, ButtonLink, WatchlistButton, ThemeToggle, GrainOverlay,
+  EmptyState, LoadingState, ErrorState, SignInPrompt, ConfirmDialog, RatingControl,
 } from "@/components";
 ```
 
-`<Header />` is rendered **once** in `src/app/layout.tsx` — do not add it inside individual pages.
+`<Header />` and `<Footer />` are rendered **once** in `src/app/layout.tsx` — don't add them inside pages. The full component gallery (both modes) is the dev-only **`/styleguide`** page. Note: `<Button component={Link}>` can't be used in a Server Component (it throws) — use `<ButtonLink href=…>` instead.
 
 Every page should be wrapped in `<PageContainer>` (handles max-width and responsive padding).
 
@@ -141,6 +144,8 @@ Movie grid layout uses MUI's `<Box>` with `display: "grid"`:
 Do not create new card styles — extend `<MovieCard>` instead.
 
 **Signed-out gating:** render `<SignInPrompt action="rate this title" />` (not a disabled button) when a write affordance is shown to a signed-out visitor.
+
+**Watchlist:** device-local via `useWatchlist()` (`@/lib/watchlist` — `items/has/toggle/remove/count`, localStorage + cross-tab, SSR-safe, no provider). `<WatchlistButton item={...}/>` is already on `MovieCard`; the `/watchlist` page lists saved titles.
 
 ### TypeScript types (`src/types/media.ts`)
 
