@@ -10,8 +10,9 @@ interface MarqueeProps {
 
 /**
  * "Now showing" ticker — the continuous mono marquee from the Repertory masthead.
- * Pure CSS transform loop (GPU, holds 60fps); pauses on hover/focus; respects
- * reduced-motion (globals.css neutralizes the animation → it just sits static).
+ * Pure CSS transform loop (GPU, holds 60fps); pauses on hover/focus. The keyframe
+ * (`repertory-marquee`) lives in globals.css. Respects reduced-motion via the global
+ * `prefers-reduced-motion: reduce` reset (it sits static for those users).
  */
 export function Marquee({ items, label = "Now Showing", speed = 40 }: MarqueeProps) {
   // One segment, with a trailing separator so the duplicated copy joins seamlessly.
@@ -43,11 +44,9 @@ export function Marquee({ items, label = "Now Showing", speed = 40 }: MarqueePro
           display: "inline-block",
           whiteSpace: "nowrap",
           willChange: "transform",
+          backfaceVisibility: "hidden",
+          transform: "translateZ(0)",
           animation: `repertory-marquee ${speed}s linear infinite`,
-          "@keyframes repertory-marquee": {
-            from: { transform: "translateX(0)" },
-            to: { transform: "translateX(-50%)" },
-          },
         }}
       >
         <Box component="span">{segment}</Box>

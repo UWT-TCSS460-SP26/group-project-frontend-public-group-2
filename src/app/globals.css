@@ -7,7 +7,7 @@ body {
   margin: 0;
 }
 
-/* MUI's CssBaseline + the colorSchemes CSS variables now drive `color-scheme`,
+/* MUI's CssBaseline + the colorSchemes CSS variables drive `color-scheme`,
    background, and text color per mode — no hardcoded theme colors here. */
 
 /* Skip-to-content link: visually hidden until focused (keyboard accessibility). */
@@ -32,14 +32,24 @@ body {
   transform: translateY(0);
 }
 
-/* Motion-contract safety net: honor reduced-motion across the whole app. */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+/* Marquee ticker scroll (Marquee component). Global so emotion can't mis-scope it. */
+@keyframes repertory-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Staggered grid/rail entrance (Reveal component). */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

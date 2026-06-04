@@ -23,3 +23,4 @@ export { CardSkeleton, RailSkeleton } from "./CardSkeleton";
 export { ButtonLink } from "./ButtonLink";
 export { WatchlistButton } from "./WatchlistButton";
 export { Reveal } from "./Reveal";
+export { Footer } from "./Footer";

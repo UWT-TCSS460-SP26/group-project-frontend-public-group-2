@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, Fraunces, IBM_Plex_Mono } from "next/font/google";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
+import Box from "@mui/material/Box";
 import "./globals.css";
 import { Providers } from "./providers";
-import { GrainOverlay, Header } from "@/components";
+import { Footer, GrainOverlay, Header } from "@/components";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -26,9 +27,9 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Group 2 Consumer App",
+  title: "Group 2 · Movies & TV",
   description:
-    "TCSS 460 consumer app — signs in via Auth² and consumes Group 1's API.",
+    "Browse, search, and keep a watchlist of the films and shows worth your time.",
 };
 
 export default function RootLayout({
@@ -49,11 +50,14 @@ export default function RootLayout({
           <a href="#main-content" className="skip-link">
             Skip to content
           </a>
-          <Header />
-          <GrainOverlay />
-          <main id="main-content" tabIndex={-1}>
-            {children}
-          </main>
+          <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
+            <Header />
+            <GrainOverlay />
+            <Box component="main" id="main-content" tabIndex={-1} sx={{ flex: 1 }}>
+              {children}
+            </Box>
+            <Footer />
+          </Box>
         </Providers>
       </body>
     </html>
