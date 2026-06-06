@@ -10,6 +10,7 @@ import {
   SectionHeading,
   SignInPrompt,
   StatBadge,
+  TitleFacts,
   WatchlistButton,
 } from "@/components";
 import { RatingControl } from "@/components/RatingControl";
@@ -480,6 +481,11 @@ export default async function TitleDetailPage({
         >
           {overview ?? "No synopsis available."}
         </Typography>
+
+        {/* Facts panel — status, language, money, production, external links,
+            straight from the enriched TMDB block (Jonathan, JO-2). Renders nothing
+            when the payload carries none of these fields. */}
+        <TitleFacts tmdb={tmdb} />
 
         {/* Your rating — signed-in users get the control (Collins, C1/C2);
             signed-out visitors get an inert sign-in prompt (Story 5). */}
