@@ -177,7 +177,7 @@ export function TitlePicker({ slot, otherSlot }: TitlePickerProps) {
                         alt={item.title}
                         fill
                         sizes="34px"
-                        style={{ objectFit: "cover" }}
+                        className="image-cover"
                       />
                     </Box>
                   )}

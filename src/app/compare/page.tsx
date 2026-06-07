@@ -186,7 +186,7 @@ function TitlePanel({
             alt={data.title}
             fill
             sizes="(max-width: 900px) 220px, 40vw"
-            style={{ objectFit: "cover" }}
+            className="image-cover"
           />
         ) : (
           <Box

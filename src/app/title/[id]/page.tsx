@@ -9,6 +9,7 @@ import {
   PageContainer,
   RecentlyViewedRecorder,
   SectionHeading,
+  ShareButton,
   SignInPrompt,
   StatBadge,
   TitleColorScope,
@@ -269,13 +270,20 @@ export default async function TitleDetailPage({
   // The hero is an intentionally dark cinematic band in BOTH color schemes — its
   // text always sits over a dark scrim — so it uses fixed white/over-dark values
   // rather than the mode-dependent text tokens (matches <Hero>).
-  const HERO_SCRIM =
-    "linear-gradient(180deg, rgba(15,14,12,0.20) 0%, rgba(15,14,12,0.55) 52%, rgba(15,14,12,0.94) 100%)";
-  const HERO_VIGNETTE =
-    "radial-gradient(120% 90% at 50% 0%, rgba(15,14,12,0) 38%, rgba(15,14,12,0.55) 100%)";
+  const HERO_SCRIM = [
+    "linear-gradient(180deg,",
+    "color-mix(in srgb, var(--mui-palette-common-black) 20%, transparent) 0%,",
+    "color-mix(in srgb, var(--mui-palette-common-black) 55%, transparent) 52%,",
+    "color-mix(in srgb, var(--mui-palette-common-black) 94%, transparent) 100%)",
+  ].join(" ");
+  const HERO_VIGNETTE = [
+    "radial-gradient(120% 90% at 50% 0%,",
+    "transparent 38%,",
+    "color-mix(in srgb, var(--mui-palette-common-black) 55%, transparent) 100%)",
+  ].join(" ");
   const HERO_FALLBACK =
-    "radial-gradient(ellipse 70% 60% at 25% 30%, rgba(30,122,90,0.18) 0%, rgba(15,14,12,0) 60%)," +
-    "linear-gradient(135deg, #1A1815 0%, #0F0E0C 60%, #15130F 100%)";
+    "radial-gradient(ellipse 70% 60% at 25% 30%, color-mix(in srgb, var(--mui-palette-primary-main) 22%, transparent) 0%, transparent 60%)," +
+    "linear-gradient(135deg, color-mix(in srgb, var(--mui-palette-common-black) 88%, var(--mui-palette-primary-main)) 0%, var(--mui-palette-common-black) 100%)";
 
   return (
     // Per-title accent (JO-2): defaults to the brand emerald/mint, then adopts a
@@ -294,7 +302,7 @@ export default async function TitleDetailPage({
           position: "relative",
           width: "100%",
           overflow: "visible",
-          bgcolor: "#0F0E0C",
+          bgcolor: "common.black",
           borderBottom: "1px solid",
           borderColor: "divider",
         }}
@@ -310,7 +318,7 @@ export default async function TitleDetailPage({
               fill
               priority
               sizes="100vw"
-              style={{ objectFit: "cover" }}
+              className="image-cover"
             />
           ) : (
             <Box
@@ -358,10 +366,12 @@ export default async function TitleDetailPage({
               width: { xs: 132, sm: 168, md: 232 },
               aspectRatio: "2 / 3",
               border: "1px solid",
-              borderColor: "rgba(255,255,255,0.16)",
-              bgcolor: "#0F0E0C",
+              borderColor:
+                "color-mix(in srgb, var(--mui-palette-common-white) 16%, transparent)",
+              bgcolor: "common.black",
               overflow: "hidden",
-              boxShadow: "0 18px 44px rgba(0,0,0,0.5)",
+              boxShadow:
+                "0 18px 44px color-mix(in srgb, var(--mui-palette-common-black) 50%, transparent)",
               mb: { md: -5 },
               viewTransitionName: posterTransitionName(mediaType, id),
             }}
@@ -372,7 +382,7 @@ export default async function TitleDetailPage({
                 alt={`${title} poster`}
                 fill
                 sizes="(max-width: 600px) 40vw, 232px"
-                style={{ objectFit: "cover" }}
+                className="image-cover"
               />
             ) : (
               <Box
@@ -382,7 +392,8 @@ export default async function TitleDetailPage({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "rgba(255,255,255,0.6)",
+                  color: "common.white",
+                  opacity: 0.6,
                   fontFamily: "var(--font-fraunces), serif",
                   fontStyle: "italic",
                   fontSize: "0.85rem",
@@ -450,29 +461,38 @@ export default async function TitleDetailPage({
               <Box
                 sx={{
                   mt: 3,
-                  display: "inline-flex",
+                  display: "flex",
+                  flexWrap: "wrap",
                   alignItems: "center",
-                  bgcolor: "background.paper",
-                  border: "1px solid",
-                  borderColor: "divider",
+                  gap: 1,
                   "& .MuiIconButton-root:hover": {
                     color: TITLE_ACCENT,
                   },
                 }}
               >
-                <WatchlistButton
-                  item={{
-                    id: numericId,
-                    mediaType,
-                    title,
-                    posterPath:
-                      asString(tmdb.poster_path) ??
-                      asString(tmdb.posterUrl) ??
-                      null,
-                    year: releaseYear ? String(releaseYear) : undefined,
+                <Box
+                  sx={{
+                    display: "inline-flex",
+                    bgcolor: "background.paper",
+                    border: "1px solid",
+                    borderColor: "divider",
                   }}
-                  size="medium"
-                />
+                >
+                  <WatchlistButton
+                    item={{
+                      id: numericId,
+                      mediaType,
+                      title,
+                      posterPath:
+                        asString(tmdb.poster_path) ??
+                        asString(tmdb.posterUrl) ??
+                        null,
+                      year: releaseYear ? String(releaseYear) : undefined,
+                    }}
+                    size="medium"
+                  />
+                </Box>
+                <ShareButton title={title} />
               </Box>
             )}
           </Box>

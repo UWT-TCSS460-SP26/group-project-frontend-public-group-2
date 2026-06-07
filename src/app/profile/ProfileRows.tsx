@@ -18,6 +18,7 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { StatBadge } from "@/components/StatBadge";
 import { deleteRating, updateRating } from "@/lib/actions/ratings";
 import { deleteReview, updateReview } from "@/lib/actions/reviews";
+import { formatDisplayDate } from "@/lib/format-date";
 import { titleKey, type TitleSummaryByKey } from "@/lib/title-summary";
 import { titleHref } from "@/lib/title-route";
 import type { EnrichedRatedItem, MediaType, Review } from "@/types/media";
@@ -68,17 +69,6 @@ function resolveSummary(
 
 function mediaLabel(mediaType: string) {
   return mediaType === "tv" ? "TV show" : "Movie";
-}
-
-function formatDate(value?: string) {
-  if (!value) return undefined;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
 }
 
 function posterUrl(path?: string | null) {
@@ -171,7 +161,7 @@ function RowPoster({
           alt={`${title} poster`}
           fill
           sizes="(max-width: 600px) 72px, 88px"
-          style={{ objectFit: "cover" }}
+          className="image-cover"
         />
       ) : (
         <Box
@@ -427,7 +417,7 @@ function ReviewRow({
   const [description, setDescription] = useState(review.description ?? "");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const date = formatDate(review.updatedAt ?? review.createdAt);
+  const date = formatDisplayDate(review.updatedAt ?? review.createdAt);
   const summary = resolveSummary(review.mediaType, review.tmdbId, null, titles);
   const imageUrl = posterUrl(summary.posterPath);
   // Group 1 stamps "Review of {tmdbId}" when the user posts with no title; we

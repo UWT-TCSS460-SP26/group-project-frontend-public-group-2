@@ -9,6 +9,7 @@ import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import { deleteReview } from "@/lib/actions/reviews";
+import { formatDisplayDate } from "@/lib/format-date";
 import { ConfirmDialog } from "./ConfirmDialog";
 import {
   useReviewsContext,
@@ -17,12 +18,6 @@ import {
 
 function reviewBody(review: DisplayReview): string {
   return review.description ?? review.body ?? "No review text provided.";
-}
-
-function formatReviewDate(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
 }
 
 /**
@@ -109,7 +104,7 @@ export function ReviewList() {
             sessionStatus === "authenticated" &&
             !loadingOwnership &&
             isOwnReview(review);
-          const reviewDate = formatReviewDate(review.createdAt);
+          const reviewDate = formatDisplayDate(review.createdAt);
 
           return (
             <Box

@@ -118,9 +118,15 @@ export function ReviewForm({
       );
       successRef.current?.focus();
       if (options?.scroll) {
+        const reducedMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        ).matches;
         document
           .getElementById("title-review-form")
-          ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          ?.scrollIntoView({
+            behavior: reducedMotion ? "auto" : "smooth",
+            block: "nearest",
+          });
       }
     },
     [],

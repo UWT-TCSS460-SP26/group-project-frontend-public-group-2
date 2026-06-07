@@ -27,5 +27,6 @@ export { GenreChip } from "./GenreChip";
 export { CardSkeleton, RailSkeleton } from "./CardSkeleton";
 export { ButtonLink } from "./ButtonLink";
 export { WatchlistButton } from "./WatchlistButton";
+export { ShareButton } from "./ShareButton";
 export { Reveal } from "./Reveal";
 export { Footer } from "./Footer";

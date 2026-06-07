@@ -23,7 +23,13 @@ export function Rail({ title, children }: RailProps) {
   const scrollByPage = (dir: 1 | -1) => {
     const el = scrollerRef.current;
     if (!el) return;
-    el.scrollBy({ left: dir * el.clientWidth * 0.85, behavior: "smooth" });
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    el.scrollBy({
+      left: dir * el.clientWidth * 0.85,
+      behavior: reducedMotion ? "auto" : "smooth",
+    });
   };
 
   const arrowSx = {

@@ -41,11 +41,16 @@ export function Footer() {
 
         <Box component="nav" sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
           {footerLinks.map((link) => (
-            <Link key={link.href} href={link.href} style={{ textDecoration: "none" }}>
+            <Box
+              key={link.href}
+              component={Link}
+              href={link.href}
+              sx={{ textDecoration: "none" }}
+            >
               <MetaText sx={{ color: "text.secondary", transition: "color 180ms ease", "&:hover": { color: "text.primary" } }}>
                 {link.label}
               </MetaText>
-            </Link>
+            </Box>
           ))}
         </Box>
       </Box>

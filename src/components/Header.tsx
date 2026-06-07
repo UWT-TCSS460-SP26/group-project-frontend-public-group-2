@@ -156,7 +156,8 @@ export function Header() {
         {/* Desktop nav */}
         <Box component="nav" aria-label="Primary navigation" sx={{ display: { xs: "none", lg: "flex" }, gap: 2.25, ml: 3 }}>
           {[...navLinks, ...(isAuthenticated ? [{ label: "Profile", href: "/profile" }] : [])].map((link) => {
-            const active = pathname === link.href;
+            const active =
+              pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
               <Link key={link.href} href={link.href} className={styles.navLink}>
                 <Box
