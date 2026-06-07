@@ -19,6 +19,8 @@ export { GrainOverlay } from "./GrainOverlay";
 export { MetaText } from "./MetaText";
 export { Rail } from "./Rail";
 export { StatBadge } from "./StatBadge";
+export { TitleFacts } from "./TitleFacts";
+export { TitleColorScope } from "./TitleColorScope";
 export { Marquee } from "./Marquee";
 export { Numeral } from "./Numeral";
 export { GenreChip } from "./GenreChip";

@@ -1,13 +1,19 @@
 import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
+import Image from "next/image";
+import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import {
   ErrorState,
+  GenreChip,
+  MetaText,
   PageContainer,
-  PageTitle,
   RecentlyViewedRecorder,
   SectionHeading,
   SignInPrompt,
+  StatBadge,
+  TitleColorScope,
+  TitleFacts,
+  WatchlistButton,
 } from "@/components";
 import { RatingControl } from "@/components/RatingControl";
 import { ReviewForm } from "@/components/ReviewForm";
@@ -15,6 +21,7 @@ import { ReviewList } from "@/components/ReviewList";
 import { ReviewsProvider } from "@/components/reviews-context";
 import { auth } from "@/auth";
 import { fetchGroupOneApi } from "@/lib/api";
+import { TITLE_ACCENT } from "@/lib/title-color";
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
 
@@ -138,7 +145,9 @@ async function fetchDetail(id: string): Promise<DetailResult | null> {
   return null;
 }
 
-export default async function TitleDetailPage({ params }: TitleDetailPageProps) {
+export default async function TitleDetailPage({
+  params,
+}: TitleDetailPageProps) {
   const { id } = await params;
 
   if (!id) {
@@ -196,6 +205,7 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
       ? asNumber(tmdb.episode_run_time[0])
       : undefined);
   const genres = asStringArray(tmdb.genres);
+  const voteAverage = asNumber(tmdb.vote_average);
 
   const posterUrl = toImageUrl(
     asString(tmdb.poster_path) ?? asString(tmdb.posterUrl),
@@ -210,17 +220,19 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
   const ratings = asRecord(payload.ratings);
   const averageScore =
     asNumber(community?.averageScore) ?? asNumber(ratings?.average);
-  const ratingCount = asNumber(community?.reviewCount) ?? asNumber(ratings?.count);
+  const ratingCount =
+    asNumber(community?.reviewCount) ?? asNumber(ratings?.count);
 
   const reviewSource = payload.recentReviews ?? payload.reviews;
   const recentReviews: ReviewItem[] = Array.isArray(reviewSource)
     ? (reviewSource as ReviewItem[])
     : [];
 
-  const subtitleParts = [
+  const typeLabel = mediaType === "tv" ? "TV show" : "Movie";
+  const metaParts = [
     releaseYear ? String(releaseYear) : undefined,
     runtime ? `${runtime} min` : undefined,
-    mediaType === "tv" ? "TV show" : "Movie",
+    typeLabel,
   ].filter((part): part is string => Boolean(part));
   const numericId = Number(id);
   const recentlyViewedItem = Number.isFinite(numericId)
@@ -233,149 +245,340 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
       }
     : null;
 
+  // The hero is an intentionally dark cinematic band in BOTH color schemes — its
+  // text always sits over a dark scrim — so it uses fixed white/over-dark values
+  // rather than the mode-dependent text tokens (matches <Hero>).
+  const HERO_SCRIM =
+    "linear-gradient(180deg, rgba(15,14,12,0.20) 0%, rgba(15,14,12,0.55) 52%, rgba(15,14,12,0.94) 100%)";
+  const HERO_VIGNETTE =
+    "radial-gradient(120% 90% at 50% 0%, rgba(15,14,12,0) 38%, rgba(15,14,12,0.55) 100%)";
+  const HERO_FALLBACK =
+    "radial-gradient(ellipse 70% 60% at 25% 30%, rgba(30,122,90,0.18) 0%, rgba(15,14,12,0) 60%)," +
+    "linear-gradient(135deg, #1A1815 0%, #0F0E0C 60%, #15130F 100%)";
+
   return (
-    <PageContainer>
+    // Per-title accent (JO-2): defaults to the brand emerald/mint, then adopts a
+    // luminance-clamped color extracted from the poster client-side. Descendants
+    // opt in via `var(--title-accent)` — never applied to body text.
+    <TitleColorScope posterUrl={posterUrl}>
       {recentlyViewedItem && <RecentlyViewedRecorder item={recentlyViewedItem} />}
 
-      {backdropUrl && (
-        <Box
-          sx={{
-            mb: 4,
-            borderRadius: 1,
-            overflow: "hidden",
-            border: "1px solid",
-            borderColor: "divider",
-            minHeight: { xs: 180, md: 260 },
-            backgroundImage: `linear-gradient(to top, rgba(15, 14, 12, 0.9), rgba(15, 14, 12, 0.2)), url(${backdropUrl})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-      )}
-
-      <Grid container spacing={4}>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Box
-            sx={{
-              width: "100%",
-              aspectRatio: "2 / 3",
-              borderRadius: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              bgcolor: "background.paper",
-              backgroundImage: posterUrl ? `url(${posterUrl})` : undefined,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {!posterUrl && (
-              <Typography
-                sx={{
-                  color: "text.secondary",
-                  fontStyle: "italic",
-                  fontFamily: "var(--font-fraunces), serif",
-                }}
-              >
-                no poster
-              </Typography>
-            )}
-          </Box>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 8 }}>
-          <PageTitle
-            title={title}
-            subtitle={subtitleParts.length > 0 ? subtitleParts.join(" • ") : undefined}
-          />
-
-          {tagline && (
-            <Typography sx={{ color: "text.secondary", mb: 2 }}>
-              {tagline}
-            </Typography>
-          )}
-
-          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 3 }}>
-            {releaseDate && (
-              <Typography sx={{ color: "text.secondary", fontSize: "0.95rem" }}>
-                Release date: {releaseDate}
-              </Typography>
-            )}
-            {genres.length > 0 && (
-              <Typography sx={{ color: "text.secondary", fontSize: "0.95rem" }}>
-                Genres: {genres.join(", ")}
-              </Typography>
-            )}
-          </Box>
-
-          <Typography variant="h6" sx={{ mb: 1 }}>
-            Synopsis
-          </Typography>
-          <Typography sx={{ color: "text.primary", lineHeight: 1.7 }}>
-            {overview ?? "No synopsis available."}
-          </Typography>
-        </Grid>
-      </Grid>
-
-      {/* Your rating — signed-in users get the control (Collins, C1/C2);
-          signed-out visitors get an inert sign-in prompt (Story 5). */}
+      {/* ── Cinematic hero band: full-bleed backdrop + scrim/vignette, with the
+          poster overlapping the bottom-left and the title/meta/tagline over the
+          scrim. The backdrop layer is the only thing clipped, so the poster can
+          dip below the band on md+ without being cut off. */}
       <Box
+        component="section"
         sx={{
-          mt: 6,
-          pt: 3,
-          borderTop: "1px solid",
+          position: "relative",
+          width: "100%",
+          overflow: "visible",
+          bgcolor: "#0F0E0C",
+          borderBottom: "1px solid",
           borderColor: "divider",
         }}
       >
-        <SectionHeading>Your rating</SectionHeading>
-        {canWrite ? (
-          <RatingControl tmdbId={id} mediaType={mediaType} />
-        ) : (
-          <SignInPrompt action="rate this title" />
-        )}
+        <Box
+          aria-hidden
+          sx={{ position: "absolute", inset: 0, overflow: "hidden" }}
+        >
+          {backdropUrl ? (
+            <Image
+              src={backdropUrl}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              style={{ objectFit: "cover" }}
+            />
+          ) : (
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                backgroundImage: HERO_FALLBACK,
+              }}
+            />
+          )}
+          <Box
+            sx={{ position: "absolute", inset: 0, backgroundImage: HERO_SCRIM }}
+          />
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: HERO_VIGNETTE,
+            }}
+          />
+        </Box>
+
+        <Box
+          sx={{
+            position: "relative",
+            zIndex: 1,
+            maxWidth: 1280,
+            mx: "auto",
+            px: { xs: 3, md: 6 },
+            pt: { xs: 12, sm: 18, md: 28 },
+            pb: { xs: 4, md: 0 },
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            alignItems: { xs: "flex-start", md: "flex-end" },
+            gap: { xs: 3, md: 5 },
+          }}
+        >
+          {/* Poster — overlaps the band's bottom edge on md+ (transform-free,
+              negative margin only on desktop so the 375px column stacks clean). */}
+          <Box
+            sx={{
+              position: "relative",
+              flexShrink: 0,
+              width: { xs: 132, sm: 168, md: 232 },
+              aspectRatio: "2 / 3",
+              border: "1px solid",
+              borderColor: "rgba(255,255,255,0.16)",
+              bgcolor: "#0F0E0C",
+              overflow: "hidden",
+              boxShadow: "0 18px 44px rgba(0,0,0,0.5)",
+              mb: { md: -5 },
+            }}
+          >
+            {posterUrl ? (
+              <Image
+                src={posterUrl}
+                alt={`${title} poster`}
+                fill
+                sizes="(max-width: 600px) 40vw, 232px"
+                style={{ objectFit: "cover" }}
+              />
+            ) : (
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "rgba(255,255,255,0.6)",
+                  fontFamily: "var(--font-fraunces), serif",
+                  fontStyle: "italic",
+                  fontSize: "0.85rem",
+                }}
+              >
+                no poster
+              </Box>
+            )}
+          </Box>
+
+          {/* Title / meta / tagline / actions — over the scrim, white. */}
+          <Box sx={{ pb: { md: 1 }, minWidth: 0 }}>
+            <Typography
+              variant="overline"
+              sx={{ color: TITLE_ACCENT, display: "block", mb: 1.5 }}
+            >
+              {typeLabel}
+            </Typography>
+
+            <Typography
+              variant="h1"
+              sx={{
+                color: "common.white",
+                fontSize: { xs: "2.25rem", sm: "3rem", md: "3.75rem" },
+                lineHeight: 1.04,
+                maxWidth: 760,
+              }}
+            >
+              {title}
+            </Typography>
+
+            {metaParts.length > 0 && (
+              <MetaText
+                sx={{
+                  display: "block",
+                  mt: 2,
+                  color: "common.white",
+                  opacity: 0.82,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                {metaParts.join(" · ")}
+              </MetaText>
+            )}
+
+            {tagline && (
+              <Typography
+                sx={{
+                  mt: 2,
+                  color: "common.white",
+                  opacity: 0.86,
+                  fontFamily: "var(--font-fraunces), Georgia, serif",
+                  fontStyle: "italic",
+                  fontSize: { xs: "1.05rem", md: "1.25rem" },
+                  lineHeight: 1.4,
+                  maxWidth: 620,
+                }}
+              >
+                {tagline}
+              </Typography>
+            )}
+
+            {Number.isFinite(numericId) && (
+              <Box
+                sx={{
+                  mt: 3,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  bgcolor: "background.paper",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  "& .MuiIconButton-root:hover": {
+                    color: TITLE_ACCENT,
+                  },
+                }}
+              >
+                <WatchlistButton
+                  item={{
+                    id: numericId,
+                    mediaType,
+                    title,
+                    posterPath:
+                      asString(tmdb.poster_path) ??
+                      asString(tmdb.posterUrl) ??
+                      null,
+                    year: releaseYear ? String(releaseYear) : undefined,
+                  }}
+                  size="medium"
+                />
+              </Box>
+            )}
+          </Box>
+        </Box>
       </Box>
 
-      {/* ReviewsProvider coordinates the community list and the review form
-          so an Edit click on a row populates the form, and a delete from the
-          form/list updates the other (Jonathan, J1/J2). */}
-      <ReviewsProvider
-        reviews={recentReviews}
-        tmdbId={id}
-        mediaType={mediaType}
-      >
+      <PageContainer>
+        {/* Stats row — community average + TMDB vote_average (★) + runtime +
+            genre chips (mono), on the theme surface so tokens render correctly. */}
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 1.25,
+            mb: { xs: 4, md: 5 },
+          }}
+        >
+          {averageScore !== undefined && (
+            <StatBadge
+              icon={
+                <StarRoundedIcon sx={{ fontSize: 14, color: TITLE_ACCENT }} />
+              }
+              sx={{ borderColor: TITLE_ACCENT }}
+            >
+              {averageScore.toFixed(1)} community
+              {ratingCount !== undefined ? ` · ${ratingCount}` : ""}
+            </StatBadge>
+          )}
+          {voteAverage !== undefined && (
+            <StatBadge
+              icon={
+                <StarRoundedIcon sx={{ fontSize: 14, color: "warning.main" }} />
+              }
+            >
+              {voteAverage.toFixed(1)} TMDB
+            </StatBadge>
+          )}
+          {runtime ? <StatBadge>{runtime} MIN</StatBadge> : null}
+          {genres.map((genre) => (
+            <GenreChip key={genre} label={genre} />
+          ))}
+        </Box>
+
+        <SectionHeading>Synopsis</SectionHeading>
+        <Typography
+          sx={{ color: "text.primary", lineHeight: 1.7, maxWidth: 720 }}
+        >
+          {overview ?? "No synopsis available."}
+        </Typography>
+
+        {/* Facts panel — status, language, money, production, external links,
+            straight from the enriched TMDB block (Jonathan, JO-2). Renders nothing
+            when the payload carries none of these fields. */}
+        <TitleFacts tmdb={tmdb} />
+
+        {/* Your rating — signed-in users get the control (Collins, C1/C2);
+            signed-out visitors get an inert sign-in prompt (Story 5). */}
         <Box
           sx={{
             mt: 6,
             pt: 3,
             borderTop: "1px solid",
-            borderColor: "divider",
+            // Accent-tinted hairline rule — a subtle per-title mix over the
+            // neutral divider so the section breaks pick up the poster's hue.
+            borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
           }}
         >
-          <SectionHeading>Community</SectionHeading>
-
-          {averageScore !== undefined && (
-            <Typography sx={{ color: "text.secondary", mb: 1 }}>
-              Average rating: {averageScore.toFixed(1)}
-              {ratingCount !== undefined ? ` (${ratingCount} ratings/reviews)` : ""}
-            </Typography>
-          )}
-
-          <ReviewList />
-        </Box>
-
-        {/* Write a review — signed-in users get the form (Jonathan, J1/J2);
-            signed-out visitors get an inert sign-in prompt (Story 5). */}
-        <Box sx={{ mt: 6, pt: 3, borderTop: "1px solid", borderColor: "divider" }}>
-          <SectionHeading>Write a review</SectionHeading>
+          <SectionHeading>Your rating</SectionHeading>
           {canWrite ? (
-            <ReviewForm tmdbId={id} mediaType={mediaType} />
+            <RatingControl
+              tmdbId={id}
+              mediaType={mediaType}
+              useTitleAccent
+            />
           ) : (
-            <SignInPrompt action="write a review" />
+            <SignInPrompt action="rate this title" />
           )}
         </Box>
-      </ReviewsProvider>
-    </PageContainer>
+
+        {/* ReviewsProvider coordinates the community list and the review form
+            so an Edit click on a row populates the form, and a delete from the
+            form/list updates the other (Jonathan, J1/J2). */}
+        <ReviewsProvider
+          reviews={recentReviews}
+          tmdbId={id}
+          mediaType={mediaType}
+        >
+          <Box
+            sx={{
+              mt: 6,
+              pt: 3,
+              borderTop: "1px solid",
+              borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
+            }}
+          >
+            <SectionHeading>Community</SectionHeading>
+
+            {averageScore !== undefined && (
+              <Typography sx={{ color: "text.secondary", mb: 1 }}>
+                Average rating: {averageScore.toFixed(1)}
+                {ratingCount !== undefined
+                  ? ` (${ratingCount} ${ratingCount === 1 ? "rating" : "ratings"})`
+                  : ""}
+              </Typography>
+            )}
+
+            <ReviewList />
+          </Box>
+
+          {/* Write a review — signed-in users get the form (Jonathan, J1/J2);
+              signed-out visitors get an inert sign-in prompt (Story 5). */}
+          <Box
+            sx={{
+              mt: 6,
+              pt: 3,
+              borderTop: "1px solid",
+              borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
+            }}
+          >
+            <SectionHeading>Write a review</SectionHeading>
+            {canWrite ? (
+              <ReviewForm tmdbId={id} mediaType={mediaType} useTitleAccent />
+            ) : (
+              <SignInPrompt action="write a review" />
+            )}
+          </Box>
+        </ReviewsProvider>
+      </PageContainer>
+    </TitleColorScope>
   );
 }

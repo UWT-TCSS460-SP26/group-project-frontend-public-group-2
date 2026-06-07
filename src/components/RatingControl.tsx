@@ -18,11 +18,18 @@ import {
   updateRating,
 } from "@/lib/actions/ratings";
 import type { MediaType } from "@/types/media";
+import {
+  TITLE_ACCENT,
+  titleAccentButtonSx,
+  titleAccentRatingSx,
+} from "@/lib/title-color";
 
 export interface RatingControlProps {
   /** TMDB id of the title being rated (the detail route's [id]). */
   tmdbId: string;
   mediaType: MediaType;
+  /** When true, stars + submit CTA read `--title-accent` (detail page only). */
+  useTitleAccent?: boolean;
 }
 
 /**
@@ -33,7 +40,11 @@ export interface RatingControlProps {
  * After a successful mutation calls router.refresh() so the server-rendered
  * aggregate on the detail page re-fetches without a manual reload.
  */
-export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
+export function RatingControl({
+  tmdbId,
+  mediaType,
+  useTitleAccent = false,
+}: RatingControlProps) {
   const { status } = useSession();
   const router = useRouter();
 
@@ -168,10 +179,14 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
             precision={0.5}
             max={5}
             disabled={busy}
-            sx={{
-              "& .MuiRating-iconFilled": { color: "primary.main" },
-              "& .MuiRating-iconHover": { color: "primary.light" },
-            }}
+            sx={
+              useTitleAccent
+                ? titleAccentRatingSx
+                : {
+                    "& .MuiRating-iconFilled": { color: "primary.main" },
+                    "& .MuiRating-iconHover": { color: "primary.light" },
+                  }
+            }
           />
           {starValue !== null && (
             <Typography sx={{ color: "text.secondary", fontSize: "0.85rem" }}>
@@ -181,7 +196,12 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
         </Box>
 
         {savedScore !== null && !errorMessage && (
-          <Typography sx={{ color: "primary.main", fontSize: "0.85rem" }}>
+          <Typography
+            sx={{
+              color: useTitleAccent ? TITLE_ACCENT : "primary.main",
+              fontSize: "0.85rem",
+            }}
+          >
             Saved — {savedScore} / 10
           </Typography>
         )}
@@ -199,6 +219,7 @@ export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
             size="small"
             onClick={handleSubmit}
             disabled={busy || starValue === null}
+            sx={useTitleAccent ? titleAccentButtonSx : undefined}
             startIcon={
               isSubmitting ? (
                 <CircularProgress size={14} color="inherit" />
