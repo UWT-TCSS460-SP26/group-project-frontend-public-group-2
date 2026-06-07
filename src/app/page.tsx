@@ -216,16 +216,39 @@ function getErrorDetail(error: unknown) {
   return error instanceof Error ? error.message : "Try refreshing this rail.";
 }
 
+function uniqueTitles(titles: string[]) {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const title of titles) {
+    const trimmed = title.trim();
+    const key = trimmed.toLocaleLowerCase();
+    if (!trimmed || seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
+}
+
 async function loadFeaturedHero(): Promise<LoadResult<FeaturedHeroData>> {
   try {
-    const data = await fetchGroupOneApi<SearchResults>("/movies/popular");
+    const [data, mostReviewedResult] = await Promise.all([
+      fetchGroupOneApi<SearchResults>("/movies/popular"),
+      loadMostReviewed(),
+    ]);
     const movies = data.results;
     if (!data || movies.length === 0) {
       return { ok: true, data: { featured: null, marqueeItems: [], featuredBackdrop: null } };
     }
 
     const featured = movies[0];
-    const marqueeItems = movies.slice(0, RAIL_LIMIT).map((m) => m.title);
+    const popularTitles = movies.slice(0, RAIL_LIMIT).map((m) => m.title);
+    const discussedTitles = mostReviewedResult.ok
+      ? mostReviewedResult.data.map((item) => item.title)
+      : [];
+    const marqueeItems = uniqueTitles([...popularTitles, ...discussedTitles]).slice(
+      0,
+      RAIL_LIMIT + 4,
+    );
     const featuredBackdrop = await fetchFeaturedBackdrop(featured.id);
 
     return { ok: true, data: { featured, marqueeItems, featuredBackdrop } };
