@@ -10,6 +10,7 @@ import {
   SectionHeading,
   SignInPrompt,
   StatBadge,
+  TitleColorScope,
   TitleFacts,
   WatchlistButton,
 } from "@/components";
@@ -19,6 +20,7 @@ import { ReviewList } from "@/components/ReviewList";
 import { ReviewsProvider } from "@/components/reviews-context";
 import { auth } from "@/auth";
 import { fetchGroupOneApi } from "@/lib/api";
+import { TITLE_ACCENT } from "@/lib/title-color";
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
 
@@ -247,7 +249,10 @@ export default async function TitleDetailPage({
   const numericId = Number(id);
 
   return (
-    <>
+    // Per-title accent (JO-2): defaults to the brand emerald/mint, then adopts a
+    // luminance-clamped color extracted from the poster client-side. Descendants
+    // opt in via `var(--title-accent)` — never applied to body text.
+    <TitleColorScope posterUrl={posterUrl}>
       {/* ── Cinematic hero band: full-bleed backdrop + scrim/vignette, with the
           poster overlapping the bottom-left and the title/meta/tagline over the
           scrim. The backdrop layer is the only thing clipped, so the poster can
@@ -359,7 +364,7 @@ export default async function TitleDetailPage({
           <Box sx={{ pb: { md: 1 }, minWidth: 0 }}>
             <Typography
               variant="overline"
-              sx={{ color: "primary.main", display: "block", mb: 1.5 }}
+              sx={{ color: TITLE_ACCENT, display: "block", mb: 1.5 }}
             >
               {typeLabel}
             </Typography>
@@ -417,6 +422,9 @@ export default async function TitleDetailPage({
                   bgcolor: "background.paper",
                   border: "1px solid",
                   borderColor: "divider",
+                  "& .MuiIconButton-root:hover": {
+                    color: TITLE_ACCENT,
+                  },
                 }}
               >
                 <WatchlistButton
@@ -453,8 +461,9 @@ export default async function TitleDetailPage({
           {averageScore !== undefined && (
             <StatBadge
               icon={
-                <StarRoundedIcon sx={{ fontSize: 14, color: "primary.main" }} />
+                <StarRoundedIcon sx={{ fontSize: 14, color: TITLE_ACCENT }} />
               }
+              sx={{ borderColor: TITLE_ACCENT }}
             >
               {averageScore.toFixed(1)} community
               {ratingCount !== undefined ? ` · ${ratingCount}` : ""}
@@ -494,12 +503,18 @@ export default async function TitleDetailPage({
             mt: 6,
             pt: 3,
             borderTop: "1px solid",
-            borderColor: "divider",
+            // Accent-tinted hairline rule — a subtle per-title mix over the
+            // neutral divider so the section breaks pick up the poster's hue.
+            borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
           }}
         >
           <SectionHeading>Your rating</SectionHeading>
           {canWrite ? (
-            <RatingControl tmdbId={id} mediaType={mediaType} />
+            <RatingControl
+              tmdbId={id}
+              mediaType={mediaType}
+              useTitleAccent
+            />
           ) : (
             <SignInPrompt action="rate this title" />
           )}
@@ -518,7 +533,7 @@ export default async function TitleDetailPage({
               mt: 6,
               pt: 3,
               borderTop: "1px solid",
-              borderColor: "divider",
+              borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
             }}
           >
             <SectionHeading>Community</SectionHeading>
@@ -542,18 +557,18 @@ export default async function TitleDetailPage({
               mt: 6,
               pt: 3,
               borderTop: "1px solid",
-              borderColor: "divider",
+              borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
             }}
           >
             <SectionHeading>Write a review</SectionHeading>
             {canWrite ? (
-              <ReviewForm tmdbId={id} mediaType={mediaType} />
+              <ReviewForm tmdbId={id} mediaType={mediaType} useTitleAccent />
             ) : (
               <SignInPrompt action="write a review" />
             )}
           </Box>
         </ReviewsProvider>
       </PageContainer>
-    </>
+    </TitleColorScope>
   );
 }
