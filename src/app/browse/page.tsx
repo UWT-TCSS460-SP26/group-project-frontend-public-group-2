@@ -106,7 +106,11 @@ export default async function BrowsePage({
         >
           {items.map((item, i) => (
             <Reveal key={item.id} index={i}>
-              <MovieCard movie={item} mediaType={activeTab.mediaType} />
+              <MovieCard
+                  movie={item}
+                  mediaType={activeTab.mediaType}
+                  metaSuffix={tab === "tv" ? "TV" : undefined}
+                />
             </Reveal>
           ))}
         </Box>

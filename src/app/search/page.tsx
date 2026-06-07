@@ -138,7 +138,11 @@ export default async function SearchPage({
         >
           {data.results.map((item, i) => (
             <Reveal key={item.id} index={i}>
-              <MovieCard movie={item} mediaType={mediaType} />
+              <MovieCard
+                  movie={item}
+                  mediaType={mediaType}
+                  metaSuffix={searchType === "tv" ? "TV" : undefined}
+                />
             </Reveal>
           ))}
         </Box>

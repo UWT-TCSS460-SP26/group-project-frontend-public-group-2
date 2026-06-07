@@ -10,40 +10,48 @@ import {
   MovieCard,
   Numeral,
   PageContainer,
+  Rail,
   Reveal,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
 import { TMDB_IMG_BASE } from "@/types/media";
-import type { SearchResults } from "@/types/media";
+import type { PopularResponse, SearchResults } from "@/types/media";
 
 // Server-render on demand so the popular feed is fresh and the build never blocks
 // on Group 1's API. (Caching/ISR can be tuned in the perf pass, RU-10.)
 export const dynamic = "force-dynamic";
 
 // Editorial "Repertory" reference home: a NOW SHOWING marquee, a numbered serif
-// featured film, and an editorial grid of popular titles. Wired to the popular feed;
-// Mani's lane (MA-2/3/4) layers the community + TV rails, states, and features on top.
+// featured film, a popular movies grid, and an "On TV Now" rail.
+// Mani's lane (MA-2/3/4) layers the community rails and features on top.
 export default async function Home() {
-  let data: SearchResults | null = null;
-  let errorDetail: string | null = null;
-  try {
-    data = await fetchGroupOneApi<SearchResults>("/movies/popular");
-  } catch (error) {
-    errorDetail =
-      error instanceof Error
-        ? error.message
-        : "We couldn't load popular titles right now.";
-  }
+  // Fetch movies and TV in parallel — TV failure doesn't block the page.
+  const [moviesResult, tvResult] = await Promise.allSettled([
+    fetchGroupOneApi<SearchResults>("/movies/popular"),
+    fetchGroupOneApi<PopularResponse>("/tv/popular"),
+  ]);
 
-  if (errorDetail) {
+  const moviesData =
+    moviesResult.status === "fulfilled" ? moviesResult.value : null;
+  const moviesError =
+    moviesResult.status === "rejected"
+      ? moviesResult.reason instanceof Error
+        ? moviesResult.reason.message
+        : "We couldn't load popular titles right now."
+      : null;
+
+  const tvShows =
+    tvResult.status === "fulfilled" ? tvResult.value.results : [];
+
+  if (moviesError) {
     return (
       <PageContainer>
-        <ErrorState message="Popular titles are unavailable." detail={errorDetail} />
+        <ErrorState message="Popular titles are unavailable." detail={moviesError} />
       </PageContainer>
     );
   }
 
-  if (!data || data.results.length === 0) {
+  if (!moviesData || moviesData.results.length === 0) {
     return (
       <PageContainer>
         <EmptyState
@@ -54,7 +62,7 @@ export default async function Home() {
     );
   }
 
-  const movies = data.results;
+  const movies = moviesData.results;
   const featured = movies[0];
   const rest = movies.slice(1);
   const marqueeItems = movies.slice(0, 12).map((m) => m.title);
@@ -167,7 +175,7 @@ export default async function Home() {
         </Box>
 
         {/* 02 · Popular this week */}
-        <Box component="section">
+        <Box component="section" sx={{ mb: { xs: 8, md: 12 } }}>
           <Box sx={{ display: "flex", alignItems: "baseline", gap: 2, mb: { xs: 3, md: 4 } }}>
             <Numeral value={2} sx={{ fontSize: { xs: "2rem", md: "2.5rem" } }} />
             <Typography variant="h2" sx={{ fontSize: { xs: "1.5rem", md: "1.85rem" } }}>
@@ -195,6 +203,53 @@ export default async function Home() {
             ))}
           </Box>
         </Box>
+
+        {/* 03 · On TV Now — always rendered; hidden only if fetch failed */}
+        {tvShows.length > 0 && (
+          <Box component="section">
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: 2,
+                mb: { xs: 3, md: 4 },
+                flexWrap: "wrap",
+              }}
+            >
+              <Numeral value={3} sx={{ fontSize: { xs: "2rem", md: "2.5rem" } }} />
+              <Typography variant="h2" sx={{ fontSize: { xs: "1.5rem", md: "1.85rem" } }}>
+                On TV now
+              </Typography>
+              <Box sx={{ flex: 1, height: "1px", backgroundColor: "divider" }} />
+              <ButtonLink
+                href="/browse?tab=tv"
+                variant="text"
+                size="small"
+                sx={{
+                  fontFamily: "var(--font-mono), ui-monospace, monospace",
+                  fontSize: "0.7rem",
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "text.secondary",
+                  "&:hover": { color: "text.primary" },
+                }}
+              >
+                Browse all →
+              </ButtonLink>
+            </Box>
+
+            <Rail>
+              {tvShows.map((show) => (
+                <MovieCard
+                  key={show.id}
+                  movie={show}
+                  mediaType="tv"
+                  metaSuffix="TV"
+                />
+              ))}
+            </Rail>
+          </Box>
+        )}
       </PageContainer>
     </>
   );
