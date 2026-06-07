@@ -33,6 +33,7 @@ interface NavLink {
 const navLinks: NavLink[] = [
   { label: "Browse", href: "/browse" },
   { label: "Watchlist", href: "/watchlist", watchlist: true },
+  { label: "About", href: "/about" },
 ];
 
 const monoNav = {
