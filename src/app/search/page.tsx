@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
@@ -12,6 +13,7 @@ import {
   Reveal,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
+import { enrichSearchMetadata } from "@/lib/search-metadata";
 import type { MediaType, Movie, SearchResults } from "@/types/media";
 import { SearchFilters } from "./SearchFilters";
 
@@ -20,8 +22,9 @@ export const metadata: Metadata = { title: "Search — Group 2" };
 type SearchType = "movies" | "tv";
 
 // ── Filter + sort logic (applied server-side on the returned result set) ───────
-// Year and sort work with available data. Genre and rating are wired for when
-// enriched results (which include genres[] and rating) become available.
+// Search list responses include dates but omit genres and ratings. The page
+// enriches results only when those filters are active, then this function
+// applies every filter deterministically.
 
 function yearOf(item: Movie): number {
   return (
@@ -48,28 +51,26 @@ function filterAndSort(
   if (params.yearFrom !== null || params.yearTo !== null) {
     result = result.filter((item) => {
       const y = yearOf(item);
-      if (!y) return true;
+      if (!y) return false;
       if (params.yearFrom !== null && y < params.yearFrom) return false;
       if (params.yearTo !== null && y > params.yearTo) return false;
       return true;
     });
   }
 
-  // Genre — no-op on search results (genre not in list response); ready for enriched data
   if (params.genre) {
     result = result.filter(
       (item) =>
-        !item.genres ||
-        item.genres.some((g) =>
-          g.toLowerCase().includes(params.genre.toLowerCase()),
-        ),
+        item.genres?.some(
+          (genre) => genre.toLowerCase() === params.genre.toLowerCase(),
+        ) ?? false,
     );
   }
 
-  // Min rating — no-op on search results (rating not in list response); ready for enriched data
   if (params.minRating !== null) {
     result = result.filter(
-      (item) => item.rating === undefined || item.rating >= params.minRating!,
+      (item) =>
+        item.rating !== undefined && item.rating >= params.minRating!,
     );
   }
 
@@ -133,7 +134,14 @@ export default async function SearchPage({
   }
 
   const rawResults = data?.results ?? [];
-  const filteredResults = filterAndSort(rawResults, {
+  const needsMetadata = Boolean(genre) || parsedMinRating !== null;
+  const metadataResult =
+    needsMetadata && rawResults.length > 0
+      ? await enrichSearchMetadata(rawResults, mediaType)
+      : { items: rawResults, failedCount: 0 };
+  const metadataFailureCount = metadataResult.failedCount;
+
+  const filteredResults = filterAndSort(metadataResult.items, {
     genre,
     yearFrom: parsedYearFrom,
     yearTo: parsedYearTo,
@@ -239,6 +247,14 @@ export default async function SearchPage({
         minRating={minRating}
         sort={sort}
       />
+
+      {metadataFailureCount > 0 && (
+        <Alert severity="warning" role="status" sx={{ mb: 3 }}>
+          {metadataFailureCount} search{" "}
+          {metadataFailureCount === 1 ? "result was" : "results were"} omitted
+          because the required filter metadata could not be loaded.
+        </Alert>
+      )}
 
       {/* Result states */}
       {fetchError ? (

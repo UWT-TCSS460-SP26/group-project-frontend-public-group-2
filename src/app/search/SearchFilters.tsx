@@ -11,8 +11,8 @@ import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-// TMDB genre taxonomy per media type. Genre is not returned by search endpoints
-// so this filter is wired for future enriched results; year + sort work today.
+// TMDB genre taxonomy per media type. The server enriches search results with
+// detail metadata whenever genre or rating filtering is requested.
 const MOVIE_GENRES = [
   "Action",
   "Adventure",
