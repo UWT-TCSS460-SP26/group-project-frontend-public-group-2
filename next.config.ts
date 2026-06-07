@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Local verification can isolate production artifacts from a concurrently
+  // running dev server with NEXT_DIST_DIR=.next-build.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   // Unlocks the View Transitions API for the shared-element poster morph (RU-11).
   experimental: {
     viewTransition: true,
