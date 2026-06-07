@@ -5,6 +5,7 @@ import {
   ErrorState,
   PageContainer,
   PageTitle,
+  RecentlyViewedRecorder,
   SectionHeading,
   SignInPrompt,
 } from "@/components";
@@ -221,9 +222,21 @@ export default async function TitleDetailPage({ params }: TitleDetailPageProps) 
     runtime ? `${runtime} min` : undefined,
     mediaType === "tv" ? "TV show" : "Movie",
   ].filter((part): part is string => Boolean(part));
+  const numericId = Number(id);
+  const recentlyViewedItem = Number.isFinite(numericId)
+    ? {
+        id: numericId,
+        mediaType,
+        title,
+        posterPath: asString(tmdb.poster_path) ?? asString(tmdb.posterUrl) ?? null,
+        year: releaseYear ? String(releaseYear) : undefined,
+      }
+    : null;
 
   return (
     <PageContainer>
+      {recentlyViewedItem && <RecentlyViewedRecorder item={recentlyViewedItem} />}
+
       {backdropUrl && (
         <Box
           sx={{

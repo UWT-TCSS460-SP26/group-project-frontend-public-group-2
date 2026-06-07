@@ -42,6 +42,14 @@ body {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+}
+
 /* Staggered grid/rail entrance (Reveal component). */
 @keyframes reveal-up {
   from {
