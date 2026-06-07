@@ -2,18 +2,25 @@ import Box from "@mui/material/Box";
 import Image from "next/image";
 import Typography from "@mui/material/Typography";
 import { ButtonLink } from "./ButtonLink";
-import { MetaText } from "./MetaText";
-import styles from "./Hero.module.css";
+
+interface HeroCta {
+  href: string;
+  label: string;
+}
 
 interface HeroProps {
-  ctaHref?: string;
-  ctaLabel?: string;
   title: string;
   eyebrow?: string;
-  meta?: string;
   blurb?: string;
-  backgroundImageUrl?: string | null;
+  /** Poster image URLs used to build the abstract film-wall backdrop. */
+  posters?: string[];
+  primaryCta?: HeroCta;
+  secondaryCta?: HeroCta;
 }
+
+// A tilted mosaic of posters reads as "cinema" without leaning on a single
+// movie still. We cycle the available posters to fill the wall edge-to-edge.
+const TILE_COUNT = 28;
 
 // Staggered fade-up for the masthead copy — reuses the global `reveal-up` keyframe
 // (defined in globals.css so emotion can't mis-scope the name). `both` fill keeps
@@ -26,58 +33,113 @@ function rise(delayMs: number) {
   } as const;
 }
 
+const ctaSx = {
+  fontFamily: "var(--font-mono), ui-monospace, monospace",
+  fontSize: "0.75rem",
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  px: 2.5,
+} as const;
+
+/**
+ * Brand masthead — an abstract, tilted "film wall" of posters behind an editorial
+ * scrim, rather than a single movie still. The poster grid is decorative
+ * (aria-hidden); the copy and CTAs carry the meaning. Entrance is transform +
+ * opacity only (GPU) and honors reduced-motion (see globals.css + `rise`).
+ */
 export function Hero({
-  ctaHref,
-  ctaLabel = "View",
-  eyebrow = "Featured",
   title,
-  meta,
+  eyebrow = "Featured",
   blurb,
-  backgroundImageUrl,
+  posters = [],
+  primaryCta,
+  secondaryCta,
 }: HeroProps) {
+  const tiles = posters.length
+    ? Array.from({ length: TILE_COUNT }, (_, i) => posters[i % posters.length])
+    : [];
+
   return (
     <Box
       component="section"
       sx={{
         position: "relative",
-        minHeight: { xs: 520, sm: 560, md: 680 },
+        minHeight: { xs: 560, sm: 600, md: 680 },
         bgcolor: "common.black",
         display: "flex",
-        alignItems: "flex-end",
+        alignItems: "center",
         overflow: "hidden",
         borderBottom: "1px solid",
         borderColor: "divider",
       }}
     >
-      {backgroundImageUrl ? (
-        <Image
-          src={backgroundImageUrl}
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className={styles.heroImage}
-        />
-      ) : (
-        <Box aria-hidden sx={{ position: "absolute", inset: 0, bgcolor: "background.paper" }} />
+      {/* Abstract film wall: a rotated, oversized poster mosaic. Decorative only. */}
+      {tiles.length > 0 && (
+        <Box
+          aria-hidden
+          sx={{
+            position: "absolute",
+            inset: "-16%",
+            transform: "rotate(-7deg)",
+            transformOrigin: "center",
+          }}
+        >
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(4, 1fr)",
+                sm: "repeat(5, 1fr)",
+                md: "repeat(7, 1fr)",
+              },
+              gap: { xs: 1, md: 1.5 },
+              transform: "scale(1.2)",
+              transformOrigin: "center",
+              // Reuses the masthead settle keyframe (opacity + slight zoom-out).
+              animation: "hero-image-in 1500ms cubic-bezier(0.22, 0.61, 0.36, 1) both",
+            }}
+          >
+            {tiles.map((src, i) => (
+              <Box
+                key={i}
+                sx={{
+                  position: "relative",
+                  aspectRatio: "2 / 3",
+                  borderRadius: 1,
+                  overflow: "hidden",
+                  boxShadow:
+                    "0 12px 28px color-mix(in srgb, var(--mui-palette-common-black) 55%, transparent)",
+                }}
+              >
+                <Image
+                  src={src}
+                  alt=""
+                  fill
+                  sizes="160px"
+                  style={{ objectFit: "cover" }}
+                />
+              </Box>
+            ))}
+          </Box>
+        </Box>
       )}
 
+      {/* Editorial scrim — left-heavy for legibility, plus a top/bottom vignette so
+          the wall blends into the header above and the page below. */}
       <Box
         aria-hidden
         sx={{
           position: "absolute",
           inset: 0,
           backgroundImage: [
-            "radial-gradient(ellipse at center, transparent 0%, color-mix(in srgb, var(--mui-palette-common-black) 72%, transparent) 100%)",
-            "linear-gradient(90deg, color-mix(in srgb, var(--mui-palette-common-black) 86%, transparent) 0%, color-mix(in srgb, var(--mui-palette-common-black) 62%, transparent) 42%, color-mix(in srgb, var(--mui-palette-common-black) 24%, transparent) 100%)",
-            "linear-gradient(180deg, color-mix(in srgb, var(--mui-palette-common-black) 18%, transparent) 0%, color-mix(in srgb, var(--mui-palette-common-black) 88%, transparent) 100%)",
+            "linear-gradient(90deg, color-mix(in srgb, var(--mui-palette-common-black) 95%, transparent) 0%, color-mix(in srgb, var(--mui-palette-common-black) 80%, transparent) 40%, color-mix(in srgb, var(--mui-palette-common-black) 52%, transparent) 100%)",
+            "linear-gradient(180deg, color-mix(in srgb, var(--mui-palette-common-black) 72%, transparent) 0%, color-mix(in srgb, var(--mui-palette-common-black) 28%, transparent) 32%, color-mix(in srgb, var(--mui-palette-common-black) 80%, transparent) 100%)",
           ].join(", "),
         }}
       />
 
-      {/* Brand accent: a soft emerald bloom anchored to the lower-left where the copy
-          sits — pulls the eye into the title and keeps the masthead from reading as a
-          generic darkened photo. `screen` lifts it over the scrim without muddying. */}
+      {/* Brand accent: a soft emerald bloom behind the copy so the masthead reads as
+          designed, not a generic darkened photo. `screen` lifts it over the scrim. */}
       <Box
         aria-hidden
         sx={{
@@ -86,7 +148,7 @@ export function Hero({
           pointerEvents: "none",
           mixBlendMode: "screen",
           backgroundImage:
-            "radial-gradient(70% 90% at 0% 100%, color-mix(in srgb, var(--mui-palette-primary-main) 28%, transparent) 0%, transparent 58%)",
+            "radial-gradient(60% 95% at 6% 55%, color-mix(in srgb, var(--mui-palette-primary-main) 32%, transparent) 0%, transparent 60%)",
         }}
       />
 
@@ -96,84 +158,72 @@ export function Hero({
           mx: "auto",
           width: "100%",
           px: { xs: 3, md: 6 },
-          pt: { xs: 12, md: 16 },
-          pb: { xs: 6, sm: 7, md: 9 },
           position: "relative",
           zIndex: 1,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, ...rise(80) }}>
-          <Box
-            sx={{ width: 40, height: 1, bgcolor: "primary.main", opacity: 0.9 }}
-          />
-          <Typography variant="overline" sx={{ color: "primary.main" }}>
-            {eyebrow}
-          </Typography>
-        </Box>
-        <Typography
-          variant="h1"
-          sx={{
-            fontSize: { xs: "2.45rem", sm: "3.5rem", md: "5.25rem" },
-            color: "common.white",
-            maxWidth: 900,
-            mb: 2,
-            overflowWrap: "anywhere",
-            ...rise(160),
-          }}
-        >
-          {title}
-        </Typography>
-        {meta && (
-          <MetaText
-            sx={{
-              display: "block",
-              color: "common.white",
-              opacity: 0.82,
-              mb: blurb ? 3 : ctaHref ? 4 : 0,
-              textTransform: "uppercase",
-              ...rise(240),
-            }}
-          >
-            {meta}
-          </MetaText>
-        )}
-        {blurb && (
+        <Box sx={{ maxWidth: 640 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, ...rise(80) }}>
+            <Box sx={{ width: 40, height: 1, bgcolor: "primary.main", opacity: 0.9 }} />
+            <Typography variant="overline" sx={{ color: "primary.main" }}>
+              {eyebrow}
+            </Typography>
+          </Box>
           <Typography
+            variant="h1"
             sx={{
-              fontSize: { xs: "1rem", md: "1.1rem" },
+              fontSize: { xs: "2.6rem", sm: "3.6rem", md: "4.75rem" },
+              lineHeight: 1.05,
               color: "common.white",
-              opacity: 0.78,
-              maxWidth: 560,
-              lineHeight: 1.6,
-              mb: ctaHref ? 4 : 0,
-              display: "-webkit-box",
-              WebkitLineClamp: { xs: 3, md: 4 },
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-              ...rise(300),
+              mb: 3,
+              overflowWrap: "anywhere",
+              ...rise(160),
             }}
           >
-            {blurb}
+            {title}
           </Typography>
-        )}
-        {ctaHref && (
-          <Box sx={{ ...rise(380) }}>
-            <ButtonLink
-              href={ctaHref}
-              variant="contained"
-              color="primary"
+          {blurb && (
+            <Typography
               sx={{
-                fontFamily: "var(--font-mono), ui-monospace, monospace",
-                fontSize: "0.75rem",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                px: 2.5,
+                fontSize: { xs: "1.02rem", md: "1.15rem" },
+                color: "common.white",
+                opacity: 0.8,
+                maxWidth: 520,
+                lineHeight: 1.6,
+                mb: 4,
+                ...rise(260),
               }}
             >
-              {ctaLabel}
-            </ButtonLink>
-          </Box>
-        )}
+              {blurb}
+            </Typography>
+          )}
+          {(primaryCta || secondaryCta) && (
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center", ...rise(360) }}>
+              {primaryCta && (
+                <ButtonLink href={primaryCta.href} variant="contained" color="primary" sx={ctaSx}>
+                  {primaryCta.label}
+                </ButtonLink>
+              )}
+              {secondaryCta && (
+                <ButtonLink
+                  href={secondaryCta.href}
+                  variant="outlined"
+                  sx={{
+                    ...ctaSx,
+                    color: "common.white",
+                    borderColor: "color-mix(in srgb, var(--mui-palette-common-white) 42%, transparent)",
+                    "&:hover": {
+                      borderColor: "common.white",
+                      backgroundColor: "color-mix(in srgb, var(--mui-palette-common-white) 8%, transparent)",
+                    },
+                  }}
+                >
+                  {secondaryCta.label}
+                </ButtonLink>
+              )}
+            </Box>
+          )}
+        </Box>
       </Box>
     </Box>
   );

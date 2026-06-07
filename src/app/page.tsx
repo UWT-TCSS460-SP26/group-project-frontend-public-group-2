@@ -17,22 +17,17 @@ import {
   StatBadge,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
-import { titleHref } from "@/lib/title-route";
 import {
   getMostReviewedCommunityTitles,
   getTopRatedCommunityTitles,
   type CommunityRailItem,
 } from "@/lib/community";
-import type { Movie, SearchResults } from "@/types/media";
+import { TMDB_IMG_BASE, type Movie, type SearchResults } from "@/types/media";
 
 // Server-render on demand so the popular feed is fresh and the build never blocks
 // on Group 1's API. (Caching/ISR can be tuned in the perf pass, RU-10.)
 export const dynamic = "force-dynamic";
 const RAIL_LIMIT = 12;
-
-const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
-
-type UnknownRecord = Record<string, unknown>;
 
 interface TvTitle {
   id: number;
@@ -49,58 +44,17 @@ interface TvResults {
 }
 
 interface FeaturedHeroData {
-  featured: Movie | null;
+  posters: string[];
   marqueeItems: string[];
-  featuredBackdrop: string | null;
 }
 
 type LoadResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: unknown };
 
-function asRecord(value: unknown): UnknownRecord | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  return value as UnknownRecord;
-}
-
-function asString(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
-
-function hasTmdbData(payload: UnknownRecord): boolean {
-  const tmdb = asRecord(payload.tmdb);
-  if (!tmdb) return false;
-  if (tmdb.success === false) return false;
-  if (typeof tmdb.status_message === "string") return false;
-  return true;
-}
-
-function toBackdropUrl(pathOrUrl: string | undefined) {
-  if (!pathOrUrl) return null;
-  if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
-    return pathOrUrl;
-  }
-  return `${TMDB_IMAGE_BASE}/w1280${pathOrUrl}`;
-}
-
-async function fetchFeaturedBackdrop(id: number) {
-  try {
-    const payload = await fetchGroupOneApi<UnknownRecord>(
-      `/details/movie/${id}/enriched`,
-    );
-    if (!hasTmdbData(payload)) return null;
-
-    const tmdb = asRecord(payload.tmdb);
-    return toBackdropUrl(
-      asString(tmdb?.backdrop_path) ?? asString(tmdb?.backdropUrl),
-    );
-  } catch {
-    return null;
-  }
+function posterUrl(path: string | null): string | null {
+  if (!path) return null;
+  return path.startsWith("http") ? path : `${TMDB_IMG_BASE}${path}`;
 }
 
 function railTitle(index: number, title: string, tag?: string) {
@@ -240,10 +194,12 @@ async function loadFeaturedHero(): Promise<LoadResult<FeaturedHeroData>> {
     ]);
     const movies = data.results;
     if (!data || movies.length === 0) {
-      return { ok: true, data: { featured: null, marqueeItems: [], featuredBackdrop: null } };
+      return { ok: true, data: { posters: [], marqueeItems: [] } };
     }
 
-    const featured = movies[0];
+    const posters = movies
+      .map((m) => posterUrl(m.poster_path))
+      .filter((url): url is string => Boolean(url));
     const popularTitles = movies.slice(0, RAIL_LIMIT).map((m) => m.title);
     const discussedTitles = mostReviewedResult.ok
       ? mostReviewedResult.data.map((item) => item.title)
@@ -252,9 +208,8 @@ async function loadFeaturedHero(): Promise<LoadResult<FeaturedHeroData>> {
       0,
       RAIL_LIMIT + 4,
     );
-    const featuredBackdrop = await fetchFeaturedBackdrop(featured.id);
 
-    return { ok: true, data: { featured, marqueeItems, featuredBackdrop } };
+    return { ok: true, data: { posters, marqueeItems } };
   } catch (error) {
     return { ok: false, error };
   }
@@ -310,8 +265,8 @@ async function FeaturedHero() {
     );
   }
 
-  const { featured, marqueeItems, featuredBackdrop } = result.data;
-  if (!featured) {
+  const { posters, marqueeItems } = result.data;
+  if (posters.length === 0) {
     return (
       <PageContainer>
         <EmptyState
@@ -322,19 +277,15 @@ async function FeaturedHero() {
     );
   }
 
-  const featuredYear = featured.release_date?.slice(0, 4);
-  const featuredMeta = [featuredYear, "Movie"].filter(Boolean).join(" · ");
-
   return (
     <>
       <Hero
-        eyebrow="Featured"
-        title={featured.title}
-        meta={featuredMeta}
-        blurb={featured.overview}
-        backgroundImageUrl={featuredBackdrop}
-        ctaHref={titleHref("movie", featured.id)}
-        ctaLabel="View"
+        eyebrow="Repertory · Group 2"
+        title="The films worth revisiting."
+        blurb="A curated window into popular movies and TV — follow the community's favorites and keep a watchlist of everything worth your time."
+        posters={posters}
+        primaryCta={{ href: "/browse", label: "Browse catalog" }}
+        secondaryCta={{ href: "/search", label: "Search" }}
       />
 
       <Marquee items={marqueeItems} label="Now Showing" />
@@ -522,19 +473,23 @@ export default function Home() {
       </Suspense>
 
       <PageContainer>
-        <RecentlyViewedRail />
-        <Suspense fallback={<RailFallback index={1} title="Popular this week" />}>
-          <PopularRail />
-        </Suspense>
-        <Suspense fallback={<RailFallback index={2} title="Top rated by the community" />}>
-          <TopRatedRail />
-        </Suspense>
-        <Suspense fallback={<RailFallback index={3} title="Most discussed" />}>
-          <MostDiscussedRail />
-        </Suspense>
-        <Suspense fallback={<RailFallback index={4} title="On TV now" tag="TV" />}>
-          <TvRail />
-        </Suspense>
+        {/* The last rail's bottom margin would otherwise stack with the container
+            padding and footer margin into a large dead gap above the footer. */}
+        <Box sx={{ "& > section:last-of-type": { mb: 0 } }}>
+          <RecentlyViewedRail />
+          <Suspense fallback={<RailFallback index={1} title="Popular this week" />}>
+            <PopularRail />
+          </Suspense>
+          <Suspense fallback={<RailFallback index={2} title="Top rated by the community" />}>
+            <TopRatedRail />
+          </Suspense>
+          <Suspense fallback={<RailFallback index={3} title="Most discussed" />}>
+            <MostDiscussedRail />
+          </Suspense>
+          <Suspense fallback={<RailFallback index={4} title="On TV now" tag="TV" />}>
+            <TvRail />
+          </Suspense>
+        </Box>
       </PageContainer>
     </>
   );

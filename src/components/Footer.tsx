@@ -19,7 +19,7 @@ const footerLinks = [
  */
 export function Footer() {
   return (
-    <Box component="footer" sx={{ borderTop: "1px solid", borderColor: "divider", mt: { xs: 8, md: 12 } }}>
+    <Box component="footer" sx={{ borderTop: "1px solid", borderColor: "divider", mt: { xs: 5, md: 7 } }}>
       <Box
         sx={{
           maxWidth: 1280,
