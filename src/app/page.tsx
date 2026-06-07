@@ -12,6 +12,7 @@ import {
   PageContainer,
   Rail,
   RailSkeleton,
+  RecentlyViewedRail,
   StatBadge,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
@@ -513,6 +514,7 @@ export default function Home() {
       </Suspense>
 
       <PageContainer>
+        <RecentlyViewedRail />
         <Suspense fallback={<RailFallback index={1} title="Popular this week" />}>
           <PopularRail />
         </Suspense>

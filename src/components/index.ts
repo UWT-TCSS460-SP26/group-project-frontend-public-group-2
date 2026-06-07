@@ -11,6 +11,8 @@ export { ErrorState } from "./ErrorState";
 export { SignInPrompt } from "./SignInPrompt";
 export { ConfirmDialog } from "./ConfirmDialog";
 export { CommandPalette } from "./CommandPalette";
+export { RecentlyViewedRail } from "./RecentlyViewedRail";
+export { RecentlyViewedRecorder } from "./RecentlyViewedRecorder";
 export { RatingControl } from "./RatingControl";
 export { ThemeToggle } from "./ThemeToggle";
 export { GrainOverlay } from "./GrainOverlay";
