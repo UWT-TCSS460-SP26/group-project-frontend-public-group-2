@@ -11,6 +11,7 @@ import {
   StatBadge,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
+import { chooseComparisonScores } from "@/lib/compare-scores";
 import { titleHref } from "@/lib/title-route";
 import { TMDB_IMG_BASE } from "@/types/media";
 import type { MediaType } from "@/types/media";
@@ -339,31 +340,8 @@ function PickerBox({ slot, otherSlot }: { slot: "a" | "b"; otherSlot?: string })
 
 // ── Winner banner ──────────────────────────────────────────────────────────────
 
-function comparisonScores(dataA: CompareData, dataB: CompareData) {
-  if (
-    dataA.communityScore !== undefined &&
-    dataB.communityScore !== undefined
-  ) {
-    return {
-      label: "Community verdict",
-      scoreA: dataA.communityScore,
-      scoreB: dataB.communityScore,
-    };
-  }
-
-  if (dataA.tmdbRating !== undefined && dataB.tmdbRating !== undefined) {
-    return {
-      label: "TMDB verdict",
-      scoreA: dataA.tmdbRating,
-      scoreB: dataB.tmdbRating,
-    };
-  }
-
-  return null;
-}
-
 function WinnerBanner({ dataA, dataB }: { dataA: CompareData; dataB: CompareData }) {
-  const scores = comparisonScores(dataA, dataB);
+  const scores = chooseComparisonScores(dataA, dataB);
   if (!scores) return null;
 
   const { label, scoreA, scoreB } = scores;

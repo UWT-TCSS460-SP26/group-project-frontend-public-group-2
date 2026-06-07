@@ -13,77 +13,14 @@ import {
   Reveal,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
+import { filterAndSortSearchResults } from "@/lib/search-filter";
 import { enrichSearchMetadata } from "@/lib/search-metadata";
-import type { MediaType, Movie, SearchResults } from "@/types/media";
+import type { MediaType, SearchResults } from "@/types/media";
 import { SearchFilters } from "./SearchFilters";
 
 export const metadata: Metadata = { title: "Search — Group 2" };
 
 type SearchType = "movies" | "tv";
-
-// ── Filter + sort logic (applied server-side on the returned result set) ───────
-// Search list responses include dates but omit genres and ratings. The page
-// enriches results only when those filters are active, then this function
-// applies every filter deterministically.
-
-function yearOf(item: Movie): number {
-  return (
-    parseInt(
-      (item.release_date ?? item.first_air_date ?? "0").slice(0, 4),
-      10,
-    ) || 0
-  );
-}
-
-function filterAndSort(
-  items: Movie[],
-  params: {
-    genre: string;
-    yearFrom: number | null;
-    yearTo: number | null;
-    minRating: number | null;
-    sort: string;
-  },
-): Movie[] {
-  let result = [...items];
-
-  // Year range — fully functional
-  if (params.yearFrom !== null || params.yearTo !== null) {
-    result = result.filter((item) => {
-      const y = yearOf(item);
-      if (!y) return false;
-      if (params.yearFrom !== null && y < params.yearFrom) return false;
-      if (params.yearTo !== null && y > params.yearTo) return false;
-      return true;
-    });
-  }
-
-  if (params.genre) {
-    result = result.filter(
-      (item) =>
-        item.genres?.some(
-          (genre) => genre.toLowerCase() === params.genre.toLowerCase(),
-        ) ?? false,
-    );
-  }
-
-  if (params.minRating !== null) {
-    result = result.filter(
-      (item) =>
-        item.rating !== undefined && item.rating >= params.minRating!,
-    );
-  }
-
-  // Sort
-  if (params.sort === "year_desc") result.sort((a, b) => yearOf(b) - yearOf(a));
-  else if (params.sort === "year_asc")
-    result.sort((a, b) => yearOf(a) - yearOf(b));
-  else if (params.sort === "title")
-    result.sort((a, b) => a.title.localeCompare(b.title));
-  // "relevance" keeps API order
-
-  return result;
-}
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
@@ -141,7 +78,7 @@ export default async function SearchPage({
       : { items: rawResults, failedCount: 0 };
   const metadataFailureCount = metadataResult.failedCount;
 
-  const filteredResults = filterAndSort(metadataResult.items, {
+  const filteredResults = filterAndSortSearchResults(metadataResult.items, {
     genre,
     yearFrom: parsedYearFrom,
     yearTo: parsedYearTo,
