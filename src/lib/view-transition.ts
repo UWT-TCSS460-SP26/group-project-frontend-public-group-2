@@ -1,15 +1,11 @@
-import type { CSSProperties } from "react";
-
 /**
- * Returns a style object carrying a `view-transition-name`, for the shared-element
- * poster morph (card → detail) built in RU-11. Requires `experimental.viewTransition`
- * in next.config.ts.
- *
- * Each name must be unique among elements present during a given transition — so use
- * an id-derived value (e.g. `poster-${id}`) and only apply it where the morph runs.
- *
- * `viewTransitionName` isn't in the current CSSProperties typings, so we cast.
+ * Stable shared-element name used by the activated card and its detail poster.
+ * The card name is applied only on activation so duplicate titles in separate
+ * rails never mount with duplicate names.
  */
-export function viewTransitionName(name: string): CSSProperties {
-  return { viewTransitionName: name } as unknown as CSSProperties;
+export function posterTransitionName(
+  mediaType: "movie" | "tv",
+  id: string | number,
+): string {
+  return `title-poster-${mediaType}-${String(id).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
 }

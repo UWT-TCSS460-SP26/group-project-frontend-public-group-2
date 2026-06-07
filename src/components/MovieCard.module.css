@@ -4,6 +4,10 @@
   text-decoration: none;
 }
 
+.cardLink:focus-visible {
+  outline-offset: 5px;
+}
+
 .posterImage {
   object-fit: cover;
 }

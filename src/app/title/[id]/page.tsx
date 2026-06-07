@@ -23,6 +23,7 @@ import { auth } from "@/auth";
 import { fetchGroupOneApi } from "@/lib/api";
 import { TITLE_ACCENT } from "@/lib/title-color";
 import { parseMediaType } from "@/lib/title-route";
+import { posterTransitionName } from "@/lib/view-transition";
 import type { MediaType } from "@/types/media";
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
@@ -324,6 +325,7 @@ export default async function TitleDetailPage({
             sx={{ position: "absolute", inset: 0, backgroundImage: HERO_SCRIM }}
           />
           <Box
+            data-title-poster-detail
             sx={{
               position: "absolute",
               inset: 0,
@@ -361,6 +363,7 @@ export default async function TitleDetailPage({
               overflow: "hidden",
               boxShadow: "0 18px 44px rgba(0,0,0,0.5)",
               mb: { md: -5 },
+              viewTransitionName: posterTransitionName(mediaType, id),
             }}
           >
             {posterUrl ? (

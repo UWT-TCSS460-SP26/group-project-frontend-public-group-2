@@ -7,6 +7,11 @@ body {
   margin: 0;
 }
 
+:focus-visible {
+  outline: 2px solid var(--mui-palette-primary-main);
+  outline-offset: 3px;
+}
+
 /* MUI's CssBaseline + the colorSchemes CSS variables drive `color-scheme`,
    background, and text color per mode — no hardcoded theme colors here. */
 
@@ -43,10 +48,29 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
   .marquee-track {
     animation: none !important;
     transform: none !important;
     will-change: auto !important;
+  }
+
+  [data-title-poster],
+  [data-title-poster-detail] {
+    view-transition-name: none !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }
 

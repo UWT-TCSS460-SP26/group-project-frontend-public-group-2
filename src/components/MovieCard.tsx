@@ -1,9 +1,9 @@
-import Link from "next/link";
 import Image from "next/image";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { MetaText } from "./MetaText";
 import { WatchlistButton } from "./WatchlistButton";
+import { TitleLink } from "./TitleLink";
 import styles from "./MovieCard.module.css";
 import { titleHref } from "@/lib/title-route";
 import type { Movie, MediaType } from "@/types/media";
@@ -39,9 +39,11 @@ export function MovieCard({
   const meta = [releaseYear, metaSuffix].filter(Boolean).join(" · ");
 
   return (
-    <Link
+    <TitleLink
       href={href}
       className={styles.cardLink}
+      id={movie.id}
+      mediaType={mediaType}
     >
       <Box
         sx={{
@@ -53,6 +55,7 @@ export function MovieCard({
         }}
       >
         <Box
+          data-title-poster
           className="poster"
           sx={{
             position: "relative",
@@ -163,6 +166,6 @@ export function MovieCard({
           </MetaText>
         )}
       </Box>
-    </Link>
+    </TitleLink>
   );
 }

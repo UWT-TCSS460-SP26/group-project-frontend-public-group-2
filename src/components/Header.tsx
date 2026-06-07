@@ -127,7 +127,7 @@ export function Header() {
           gap: 1,
         }}
       >
-        <Link href="/" className={styles.brandLink}>
+        <Link href="/" className={styles.brandLink} aria-label="Repertory home">
           <Typography
             component="span"
             sx={{
@@ -139,13 +139,23 @@ export function Header() {
               whiteSpace: "nowrap",
             }}
           >
-            Group 2
+            Repertory
           </Typography>
+          <MetaText
+            component="span"
+            sx={{
+              display: { xs: "none", sm: "inline" },
+              ml: 1,
+              color: "text.secondary",
+            }}
+          >
+            / Group 2
+          </MetaText>
         </Link>
 
         {/* Desktop nav */}
-        <Box component="nav" sx={{ display: { xs: "none", md: "flex" }, gap: 2.25, ml: 3 }}>
-          {navLinks.map((link) => {
+        <Box component="nav" aria-label="Primary navigation" sx={{ display: { xs: "none", lg: "flex" }, gap: 2.25, ml: 3 }}>
+          {[...navLinks, ...(isAuthenticated ? [{ label: "Profile", href: "/profile" }] : [])].map((link) => {
             const active = pathname === link.href;
             return (
               <Link key={link.href} href={link.href} className={styles.navLink}>
@@ -198,7 +208,7 @@ export function Header() {
               onClick={(e) => setAccountAnchor(e.currentTarget)}
               aria-label="Account menu"
               size="small"
-              sx={{ display: { xs: "none", md: "inline-flex" } }}
+              sx={{ display: { xs: "none", lg: "inline-flex" } }}
             >
               {avatar(30)}
             </IconButton>
@@ -209,9 +219,27 @@ export function Header() {
               size="small"
               onClick={() => signIn("tcss460")}
               disabled={status === "loading"}
-              sx={{ display: { xs: "none", md: "inline-flex" }, ...monoNav, borderRadius: 999, px: 2 }}
+              sx={{ display: { xs: "none", lg: "inline-flex" }, ...monoNav, borderRadius: 999, px: 2 }}
             >
               Sign In
+            </Button>
+          )}
+
+          {!isAuthenticated && (
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={() => signIn("tcss460")}
+              disabled={status === "loading"}
+              sx={{
+                display: { xs: "inline-flex", lg: "none" },
+                ...monoNav,
+                minWidth: 0,
+                px: 1.5,
+              }}
+            >
+              Sign in
             </Button>
           )}
 
@@ -220,7 +248,7 @@ export function Header() {
             aria-label="Open menu"
             onClick={(e) => setNavAnchor(e.currentTarget)}
             size="small"
-            sx={{ display: { xs: "inline-flex", md: "none" }, color: "text.primary" }}
+            sx={{ display: { xs: "inline-flex", lg: "none" }, color: "text.primary" }}
           >
             <MenuIcon />
           </IconButton>

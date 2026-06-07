@@ -17,6 +17,9 @@ export function Reveal({ children, index = 0 }: RevealProps) {
       sx={{
         animation: "reveal-up 420ms ease-out both",
         animationDelay: `${Math.min(index, 14) * 45}ms`,
+        "@media (prefers-reduced-motion: reduce)": {
+          animation: "none",
+        },
       }}
     >
       {children}

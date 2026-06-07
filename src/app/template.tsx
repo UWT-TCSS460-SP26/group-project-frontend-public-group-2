@@ -15,6 +15,9 @@ export default function Template({ children }: { children: React.ReactNode }) {
           from: { opacity: 0 },
           to: { opacity: 1 },
         },
+        "@media (prefers-reduced-motion: reduce)": {
+          animation: "none",
+        },
       }}
     >
       {children}

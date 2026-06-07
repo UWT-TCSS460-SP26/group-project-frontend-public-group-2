@@ -32,7 +32,7 @@ export function Footer() {
       >
         <Box sx={{ maxWidth: 320 }}>
           <Typography sx={{ fontFamily: "var(--font-fraunces), Georgia, serif", fontSize: "1.25rem", mb: 1 }}>
-            Group 2
+            Repertory / Group 2
           </Typography>
           <Typography sx={{ color: "text.secondary", fontSize: "0.9rem", lineHeight: 1.6 }}>
             Browse, search, and keep a watchlist of the films and shows worth your time.
@@ -52,7 +52,14 @@ export function Footer() {
 
       <Box sx={{ borderTop: "1px solid", borderColor: "divider" }}>
         <Box sx={{ maxWidth: 1280, mx: "auto", px: { xs: 3, md: 6 }, py: 2.5 }}>
-          <MetaText sx={{ color: "text.secondary" }}>© 2026 Group 2</MetaText>
+          <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 1.5 }}>
+            <MetaText sx={{ color: "text.secondary" }}>
+              Group 2 · TCSS 460 · Spring 2026
+            </MetaText>
+            <MetaText sx={{ color: "text.secondary" }}>
+              Data: TMDB · Auth: Auth² · API: Group 1
+            </MetaText>
+          </Box>
         </Box>
       </Box>
     </Box>

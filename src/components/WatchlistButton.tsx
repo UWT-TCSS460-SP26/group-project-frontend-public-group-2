@@ -38,6 +38,10 @@ export function WatchlistButton({ item, size = "small" }: WatchlistButtonProps) 
           "&:hover": { color: "primary.main", backgroundColor: "transparent" },
           "& .wl-icon": { transition: "transform 150ms ease" },
           "&:active .wl-icon": { transform: "scale(1.2)" },
+          "@media (prefers-reduced-motion: reduce)": {
+            "& .wl-icon": { transition: "none" },
+            "&:active .wl-icon": { transform: "none" },
+          },
         }}
       >
         {saved ? (
