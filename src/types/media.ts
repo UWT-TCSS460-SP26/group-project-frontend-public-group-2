@@ -20,8 +20,10 @@ export const TMDB_IMG_BASE = "https://image.tmdb.org/t/p/w500";
 export type MediaType = "movie" | "tv";
 
 /**
- * One result item from GET /movies/search or GET /movies/popular.
- * All fields are required per the Group 1 OpenAPI spec.
+ * Shared item shape for both movie and TV popular/search results.
+ * Movies have `release_date`; TV shows have `first_air_date` instead.
+ * Both are optional so the same type covers both endpoints — check whichever
+ * is present when you need a display year.
  */
 export interface Movie {
   id: number;
@@ -29,8 +31,10 @@ export interface Movie {
   overview: string;
   /** Relative TMDB path e.g. "/abc123.jpg". Prepend TMDB_IMG_BASE. Null when TMDB has no poster. */
   poster_path: string | null;
-  /** ISO 8601 date string "YYYY-MM-DD". Slice [0, 4] for the 4-digit display year. */
-  release_date: string;
+  /** ISO 8601 date string "YYYY-MM-DD". Present on movie results. */
+  release_date?: string;
+  /** ISO 8601 date string "YYYY-MM-DD". Present on TV results instead of release_date. */
+  first_air_date?: string;
   language: string;
 }
 
@@ -39,6 +43,17 @@ export interface Movie {
  */
 export interface SearchResults {
   query: string;
+  language: string;
+  page: number;
+  results: Movie[];
+}
+
+/**
+ * Paginated envelope returned by GET /movies/popular and GET /tv/popular.
+ * Both endpoints share the same wrapper shape; item fields differ slightly
+ * (movies have release_date, TV shows have first_air_date — both on Movie).
+ */
+export interface PopularResponse {
   language: string;
   page: number;
   results: Movie[];

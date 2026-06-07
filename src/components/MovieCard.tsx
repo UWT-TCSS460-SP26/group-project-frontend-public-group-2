@@ -32,8 +32,8 @@ export function MovieCard({
       : `${TMDB_IMG_BASE}${movie.poster_path}`
     : null;
 
-  // release_date comes as "YYYY-MM-DD" — display just the year.
-  const releaseYear = movie.release_date?.slice(0, 4);
+  // Movies have release_date; TV shows have first_air_date — fall back gracefully.
+  const releaseYear = (movie.release_date ?? movie.first_air_date)?.slice(0, 4);
   const meta = [releaseYear, metaSuffix].filter(Boolean).join(" · ");
 
   return (
@@ -45,7 +45,9 @@ export function MovieCard({
         sx={{
           "&:hover .poster": { transform: "translateY(-3px)" },
           "&:hover .accent-rule": { transform: "scaleX(1)" },
-          "&:hover .poster-overlay, &:focus-within .poster-overlay": { opacity: 1 },
+          "&:hover .poster-overlay, &:focus-within .poster-overlay": {
+            opacity: 1,
+          },
         }}
       >
         <Box
@@ -140,7 +142,9 @@ export function MovieCard({
           {movie.title}
         </Typography>
         {meta && (
-          <MetaText sx={{ display: "block", mt: 0.5, textTransform: "uppercase" }}>
+          <MetaText
+            sx={{ display: "block", mt: 0.5, textTransform: "uppercase" }}
+          >
             {meta}
           </MetaText>
         )}
