@@ -128,21 +128,14 @@ export function SearchFilters({
   return (
     <Box
       component="fieldset"
-      sx={{
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 1,
-        px: { xs: 2, md: 2.5 },
-        pt: 1.5,
-        pb: 2,
-        mb: { xs: 4, md: 5 },
-      }}
+      sx={{ border: 0, p: 0, m: 0, minWidth: 0 }}
     >
       {/* <legend> groups all controls for screen readers */}
       <Typography
         component="legend"
         sx={{
-          px: 0.75,
+          mb: 1.5,
+          p: 0,
           fontFamily: "var(--font-mono), ui-monospace, monospace",
           fontSize: "0.7rem",
           letterSpacing: "0.14em",

@@ -55,10 +55,6 @@ export function TitlePicker({ slot, otherSlot }: TitlePickerProps) {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Typography sx={{ color: "text.secondary", fontStyle: "italic", fontFamily: "var(--font-fraunces), serif" }}>
-        Pick a title
-      </Typography>
-
       {/* Movies / TV toggle */}
       <Box sx={{ display: "flex", gap: 1 }}>
         {(["movies", "tv"] as const).map((t) => (

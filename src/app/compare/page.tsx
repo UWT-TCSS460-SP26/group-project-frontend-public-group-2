@@ -144,6 +144,85 @@ async function fetchCompareData(
   }
 }
 
+// ── Shared bits ────────────────────────────────────────────────────────────────
+
+const monoButtonSx = {
+  fontFamily: "var(--font-mono), ui-monospace, monospace",
+  fontSize: "0.7rem",
+  letterSpacing: "0.1em",
+  textTransform: "uppercase" as const,
+};
+
+/** Small mono A/B marker so each side is clearly labeled. */
+function SlotBadge({ slot }: { slot: "a" | "b" }) {
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        width: 26,
+        height: 26,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.default",
+        fontFamily: "var(--font-mono), ui-monospace, monospace",
+        fontSize: "0.78rem",
+        color: "text.secondary",
+      }}
+    >
+      {slot.toUpperCase()}
+    </Box>
+  );
+}
+
+/** "VS" centerpiece — a vertical line + badge on desktop, horizontal on mobile. */
+function VsDivider() {
+  const lineSx = {
+    bgcolor: "divider",
+    flex: 1,
+    width: { xs: "auto", md: "1px" },
+    height: { xs: "1px", md: "auto" },
+  };
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        display: "flex",
+        flexDirection: { xs: "row", md: "column" },
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 1.5,
+        minHeight: { md: "100%" },
+      }}
+    >
+      <Box sx={lineSx} />
+      <Box
+        sx={{
+          flexShrink: 0,
+          width: 44,
+          height: 44,
+          borderRadius: "50%",
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "var(--font-mono), ui-monospace, monospace",
+          fontSize: "0.8rem",
+          letterSpacing: "0.05em",
+          color: "primary.main",
+        }}
+      >
+        VS
+      </Box>
+      <Box sx={lineSx} />
+    </Box>
+  );
+}
+
 // ── TitlePanel ─────────────────────────────────────────────────────────────────
 
 function TitlePanel({
@@ -166,65 +245,106 @@ function TitlePanel({
   ].filter(Boolean);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
-      {/* Poster */}
-      <Box
-        sx={{
-          position: "relative",
-          aspectRatio: "2 / 3",
-          width: "100%",
-          maxWidth: { xs: 220, md: "none" },
-          mx: { xs: "auto", md: 0 },
-          border: "1px solid",
-          borderColor: "divider",
-          bgcolor: "background.paper",
-          overflow: "hidden",
-        }}
-      >
-        {data.posterUrl ? (
-          <Image
-            src={data.posterUrl}
-            alt={data.title}
-            fill
-            sizes="(max-width: 900px) 220px, 40vw"
-            className="image-cover"
-          />
-        ) : (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-            }}
-          >
-            <Typography
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+        p: { xs: 2.5, md: 3 },
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+      }}
+    >
+      {/* Header: slot marker + change link */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <SlotBadge slot={slot} />
+        <ButtonLink
+          href={changeHref}
+          variant="text"
+          size="small"
+          sx={{
+            ...monoButtonSx,
+            color: "text.secondary",
+            "&:hover": { color: "text.primary", bgcolor: "transparent" },
+          }}
+        >
+          Change
+        </ButtonLink>
+      </Box>
+
+      {/* Poster + title/meta/scores side-by-side (compact, comparison-friendly) */}
+      <Box sx={{ display: "flex", gap: { xs: 2, md: 2.5 } }}>
+        <Box
+          sx={{
+            position: "relative",
+            flexShrink: 0,
+            width: { xs: 100, sm: 120, md: 140 },
+            aspectRatio: "2 / 3",
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.default",
+            overflow: "hidden",
+          }}
+        >
+          {data.posterUrl ? (
+            <Image
+              src={data.posterUrl}
+              alt={data.title}
+              fill
+              sizes="140px"
+              className="image-cover"
+            />
+          ) : (
+            <Box
               sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
                 color: "text.secondary",
                 fontStyle: "italic",
                 fontFamily: "var(--font-fraunces), serif",
-                fontSize: "0.85rem",
+                fontSize: "0.8rem",
               }}
             >
               no poster
-            </Typography>
-          </Box>
-        )}
-      </Box>
+            </Box>
+          )}
+        </Box>
 
-      {/* Title + meta */}
-      <Box>
-        <Typography
-          variant="h2"
-          sx={{ fontSize: { xs: "1.35rem", md: "1.65rem" }, mb: 0.75 }}
-        >
-          {data.title}
-        </Typography>
-        {metaParts.length > 0 && (
-          <MetaText sx={{ textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            {metaParts.join(" · ")}
-          </MetaText>
-        )}
+        <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 1.25 }}>
+          <Box>
+            <Typography
+              variant="h2"
+              sx={{ fontSize: { xs: "1.2rem", md: "1.45rem" }, lineHeight: 1.15 }}
+            >
+              {data.title}
+            </Typography>
+            {metaParts.length > 0 && (
+              <MetaText sx={{ display: "block", mt: 0.75, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+                {metaParts.join(" · ")}
+              </MetaText>
+            )}
+          </Box>
+
+          {/* Scores */}
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+            {data.tmdbRating !== undefined && (
+              <StatBadge icon="★">{data.tmdbRating.toFixed(1)} TMDB</StatBadge>
+            )}
+            {data.communityScore !== undefined && (
+              <StatBadge icon="★" sx={{ color: "primary.main", borderColor: "primary.main" }}>
+                {data.communityScore.toFixed(1)} community
+                {data.ratingCount ? ` · ${data.ratingCount}` : ""}
+              </StatBadge>
+            )}
+            {data.tmdbRating === undefined && data.communityScore === undefined && (
+              <MetaText sx={{ color: "text.secondary" }}>No ratings yet</MetaText>
+            )}
+          </Box>
+        </Box>
       </Box>
 
       {/* Genres */}
@@ -235,37 +355,6 @@ function TitlePanel({
           ))}
         </Box>
       )}
-
-      {/* Scores */}
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-        {data.tmdbRating !== undefined && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <MetaText sx={{ color: "text.secondary", textTransform: "uppercase", fontSize: "0.68rem", letterSpacing: "0.12em", minWidth: 110 }}>
-              TMDB
-            </MetaText>
-            <StatBadge icon="★">
-              {data.tmdbRating.toFixed(1)} / 10
-            </StatBadge>
-          </Box>
-        )}
-        {data.communityScore !== undefined && (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <MetaText sx={{ color: "text.secondary", textTransform: "uppercase", fontSize: "0.68rem", letterSpacing: "0.12em", minWidth: 110 }}>
-              Community
-            </MetaText>
-            <StatBadge
-              icon="★"
-              sx={{ color: "primary.main", borderColor: "primary.main" }}
-            >
-              {data.communityScore.toFixed(1)} / 10
-              {data.ratingCount ? ` (${data.ratingCount})` : ""}
-            </StatBadge>
-          </Box>
-        )}
-        {data.tmdbRating === undefined && data.communityScore === undefined && (
-          <MetaText sx={{ color: "text.secondary" }}>No ratings yet</MetaText>
-        )}
-      </Box>
 
       {/* Overview */}
       {data.overview && (
@@ -284,36 +373,16 @@ function TitlePanel({
         </Typography>
       )}
 
-      {/* Actions */}
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+      {/* Action — pinned to the bottom so both cards align */}
+      <Box sx={{ mt: "auto", pt: 1 }}>
         <ButtonLink
           href={titleHref(data.mediaType, data.id)}
           variant="contained"
           color="primary"
           size="small"
-          sx={{
-            fontFamily: "var(--font-mono), ui-monospace, monospace",
-            fontSize: "0.7rem",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-          }}
+          sx={monoButtonSx}
         >
           View title →
-        </ButtonLink>
-        <ButtonLink
-          href={changeHref}
-          variant="outlined"
-          size="small"
-          sx={{
-            fontFamily: "var(--font-mono), ui-monospace, monospace",
-            fontSize: "0.7rem",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            color: "text.secondary",
-            borderColor: "divider",
-          }}
-        >
-          Change
         </ButtonLink>
       </Box>
     </Box>
@@ -326,13 +395,23 @@ function PickerBox({ slot, otherSlot }: { slot: "a" | "b"; otherSlot?: string })
   return (
     <Box
       sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
         border: "1px dashed",
         borderColor: "divider",
-        borderRadius: 1,
+        bgcolor: "background.paper",
         p: { xs: 2.5, md: 3 },
-        minHeight: { xs: 180, md: 260 },
+        minHeight: { xs: 200, md: 280 },
       }}
     >
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <SlotBadge slot={slot} />
+        <MetaText sx={{ textTransform: "uppercase", letterSpacing: "0.1em", color: "text.secondary" }}>
+          {slot === "a" ? "First title" : "Second title"}
+        </MetaText>
+      </Box>
       <TitlePicker slot={slot} otherSlot={otherSlot} />
     </Box>
   );
@@ -350,10 +429,13 @@ function WinnerBanner({ dataA, dataB }: { dataA: CompareData; dataB: CompareData
   return (
     <Box
       sx={{
-        mt: { xs: 5, md: 7 },
-        pt: 3,
-        borderTop: "1px solid",
+        mt: { xs: 4, md: 6 },
+        p: { xs: 3, md: 4 },
+        border: "1px solid",
         borderColor: "divider",
+        borderTop: "2px solid",
+        borderTopColor: "primary.main",
+        bgcolor: "background.paper",
         textAlign: "center",
       }}
     >
@@ -429,13 +511,13 @@ export default async function ComparePage({
     <PageContainer>
       <PageTitle title="Compare" subtitle={subtitle} />
 
-      {/* Side-by-side grid — 1 column on mobile, 2 on desktop */}
+      {/* Head-to-head grid — A | VS | B on desktop, stacked with VS between on mobile */}
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-          gap: { xs: 5, md: 7 },
-          alignItems: "start",
+          gridTemplateColumns: { xs: "1fr", md: "1fr auto 1fr" },
+          gap: { xs: 2.5, md: 3 },
+          alignItems: "stretch",
         }}
       >
         {/* Slot A */}
@@ -444,6 +526,8 @@ export default async function ComparePage({
         ) : (
           <PickerBox slot="a" otherSlot={b} />
         )}
+
+        <VsDivider />
 
         {/* Slot B */}
         {slotB && dataB ? (

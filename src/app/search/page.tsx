@@ -119,71 +119,106 @@ export default async function SearchPage({
     <PageContainer>
       <PageTitle title="Search" subtitle={subtitle} />
 
-      {/* Movies / TV toggle — links so they work without JS */}
-      <Box sx={{ display: "flex", gap: 1, mb: 3 }}>
-        <ButtonLink
-          href={tabHref("movies")}
-          variant={searchType === "movies" ? "contained" : "outlined"}
-          color="primary"
-          size="small"
-        >
-          Movies
-        </ButtonLink>
-        <ButtonLink
-          href={tabHref("tv")}
-          variant={searchType === "tv" ? "contained" : "outlined"}
-          color="primary"
-          size="small"
-        >
-          TV Shows
-        </ButtonLink>
-      </Box>
-
-      {/* Search form — GET submission updates the URL; works without JS */}
+      {/* Search console — media toggle, query, and filters in one panel so the
+          controls read as a single, deliberate surface (premium + organized). */}
       <Box
-        component="form"
-        method="GET"
-        action="/search"
-        sx={{ display: "flex", gap: 2, mb: 3, maxWidth: 600 }}
+        sx={{
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+          p: { xs: 2, md: 2.5 },
+          mb: { xs: 4, md: 5 },
+        }}
       >
-        {/* Preserve the active tab when the form submits */}
-        <input type="hidden" name="type" value={searchType} />
-        {/* Preserve active filters when the form submits */}
-        {genre && <input type="hidden" name="genre" value={genre} />}
-        {yearFrom && <input type="hidden" name="yearFrom" value={yearFrom} />}
-        {yearTo && <input type="hidden" name="yearTo" value={yearTo} />}
-        {minRating && (
-          <input type="hidden" name="minRating" value={minRating} />
-        )}
-        {sort && sort !== "relevance" && (
-          <input type="hidden" name="sort" value={sort} />
-        )}
-        <TextField
-          name="q"
-          defaultValue={trimmedQ}
-          placeholder={
-            searchType === "tv" ? "Search TV shows…" : "Search movies…"
-          }
-          size="small"
-          fullWidth
-          autoComplete="off"
-          slotProps={{ htmlInput: { "aria-label": "Search query" } }}
-        />
-        <Button type="submit" variant="contained" color="primary">
-          Search
-        </Button>
-      </Box>
+        {/* Top row: media toggle + search field, aligned and same height */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            gap: 2,
+            alignItems: { md: "center" },
+          }}
+        >
+          {/* Movies / TV toggle — links so they work without JS */}
+          <Box sx={{ display: "flex", flexShrink: 0 }}>
+            <ButtonLink
+              href={tabHref("movies")}
+              variant={searchType === "movies" ? "contained" : "outlined"}
+              color="primary"
+              sx={{ borderRadius: 0 }}
+            >
+              Movies
+            </ButtonLink>
+            <ButtonLink
+              href={tabHref("tv")}
+              variant={searchType === "tv" ? "contained" : "outlined"}
+              color="primary"
+              sx={{ borderRadius: 0, ml: "-1px" }}
+            >
+              TV Shows
+            </ButtonLink>
+          </Box>
 
-      {/* Filter + sort panel */}
-      <SearchFilters
-        q={trimmedQ}
-        searchType={searchType}
-        genre={genre}
-        yearFrom={yearFrom}
-        yearTo={yearTo}
-        minRating={minRating}
-        sort={sort}
-      />
+          {/* Search form — GET submission updates the URL; works without JS */}
+          <Box
+            component="form"
+            method="GET"
+            action="/search"
+            sx={{ display: "flex", gap: 1.5, flex: 1, width: "100%" }}
+          >
+            {/* Preserve the active tab when the form submits */}
+            <input type="hidden" name="type" value={searchType} />
+            {/* Preserve active filters when the form submits */}
+            {genre && <input type="hidden" name="genre" value={genre} />}
+            {yearFrom && <input type="hidden" name="yearFrom" value={yearFrom} />}
+            {yearTo && <input type="hidden" name="yearTo" value={yearTo} />}
+            {minRating && (
+              <input type="hidden" name="minRating" value={minRating} />
+            )}
+            {sort && sort !== "relevance" && (
+              <input type="hidden" name="sort" value={sort} />
+            )}
+            <TextField
+              name="q"
+              defaultValue={trimmedQ}
+              placeholder={
+                searchType === "tv" ? "Search TV shows…" : "Search movies…"
+              }
+              fullWidth
+              autoComplete="off"
+              slotProps={{ htmlInput: { "aria-label": "Search query" } }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              sx={{ flexShrink: 0, px: 3 }}
+            >
+              Search
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Filter + sort — nested under a hairline within the same panel */}
+        <Box
+          sx={{
+            mt: { xs: 2, md: 2.5 },
+            pt: { xs: 2, md: 2.5 },
+            borderTop: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <SearchFilters
+            q={trimmedQ}
+            searchType={searchType}
+            genre={genre}
+            yearFrom={yearFrom}
+            yearTo={yearTo}
+            minRating={minRating}
+            sort={sort}
+          />
+        </Box>
+      </Box>
 
       {metadataFailureCount > 0 && (
         <Alert severity="warning" role="status" sx={{ mb: 3 }}>
