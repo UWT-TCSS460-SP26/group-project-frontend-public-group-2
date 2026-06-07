@@ -31,7 +31,9 @@ interface NavLink {
 
 const navLinks: NavLink[] = [
   { label: "Browse", href: "/browse" },
+  { label: "Search", href: "/search" },
   { label: "Watchlist", href: "/watchlist", watchlist: true },
+  { label: "Compare", href: "/compare" },
   { label: "About", href: "/about" },
 ];
 
@@ -142,7 +144,7 @@ export function Header() {
         </Link>
 
         {/* Desktop nav */}
-        <Box component="nav" sx={{ display: { xs: "none", md: "flex" }, gap: 3, ml: 3 }}>
+        <Box component="nav" sx={{ display: { xs: "none", md: "flex" }, gap: 2.25, ml: 3 }}>
           {navLinks.map((link) => {
             const active = pathname === link.href;
             return (

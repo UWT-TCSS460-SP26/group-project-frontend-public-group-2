@@ -77,8 +77,14 @@ async function fetchCompareData(
     const tmdb = asRec(record.tmdb) ?? record;
     const ratings = asRec(record.ratings);
 
-    // Guard: TMDB error body (can return HTTP 200 with success:false)
-    if (tmdb.success === false) return null;
+    // Group 1 can return a TMDB error envelope with HTTP 200.
+    if (
+      tmdb.success === false ||
+      typeof tmdb.status_message === "string" ||
+      typeof tmdb.status_code === "number"
+    ) {
+      return null;
+    }
 
     const title =
       asStr(tmdb.title) ??
@@ -113,8 +119,11 @@ async function fetchCompareData(
       : [];
 
     const tmdbRating = asNum(tmdb.vote_average) ?? asNum(tmdb.rating);
-    const communityScore = asNum(ratings?.average);
     const ratingCount = asNum(ratings?.count);
+    const communityScore =
+      ratingCount !== undefined && ratingCount > 0
+        ? asNum(ratings?.average)
+        : undefined;
 
     return {
       id,
@@ -330,13 +339,34 @@ function PickerBox({ slot, otherSlot }: { slot: "a" | "b"; otherSlot?: string })
 
 // ── Winner banner ──────────────────────────────────────────────────────────────
 
+function comparisonScores(dataA: CompareData, dataB: CompareData) {
+  if (
+    dataA.communityScore !== undefined &&
+    dataB.communityScore !== undefined
+  ) {
+    return {
+      label: "Community verdict",
+      scoreA: dataA.communityScore,
+      scoreB: dataB.communityScore,
+    };
+  }
+
+  if (dataA.tmdbRating !== undefined && dataB.tmdbRating !== undefined) {
+    return {
+      label: "TMDB verdict",
+      scoreA: dataA.tmdbRating,
+      scoreB: dataB.tmdbRating,
+    };
+  }
+
+  return null;
+}
+
 function WinnerBanner({ dataA, dataB }: { dataA: CompareData; dataB: CompareData }) {
-  // Prefer community score; fall back to TMDB rating
-  const scoreA = dataA.communityScore ?? dataA.tmdbRating;
-  const scoreB = dataB.communityScore ?? dataB.tmdbRating;
+  const scores = comparisonScores(dataA, dataB);
+  if (!scores) return null;
 
-  if (scoreA === undefined || scoreB === undefined) return null;
-
+  const { label, scoreA, scoreB } = scores;
   const diff = Math.abs(scoreA - scoreB);
 
   return (
@@ -358,7 +388,7 @@ function WinnerBanner({ dataA, dataB }: { dataA: CompareData; dataB: CompareData
           mb: 1.5,
         }}
       >
-        Community verdict
+        {label}
       </MetaText>
 
       {diff < 0.1 ? (

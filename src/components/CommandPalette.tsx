@@ -15,6 +15,7 @@ import ExploreRoundedIcon from "@mui/icons-material/ExploreRounded";
 import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
+import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import MovieRoundedIcon from "@mui/icons-material/MovieRounded";
 import TvRoundedIcon from "@mui/icons-material/TvRounded";
 import { MetaText } from "./MetaText";
@@ -75,6 +76,14 @@ const QUICK_LINKS: PaletteItem[] = [
     label: "Page",
     kind: "link",
     icon: <BookmarkRoundedIcon fontSize="small" />,
+  },
+  {
+    id: "compare",
+    href: "/compare",
+    title: "Compare",
+    label: "Page",
+    kind: "link",
+    icon: <CompareArrowsRoundedIcon fontSize="small" />,
   },
   {
     id: "profile",

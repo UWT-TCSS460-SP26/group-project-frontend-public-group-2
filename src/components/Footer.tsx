@@ -7,6 +7,7 @@ const footerLinks = [
   { label: "Browse", href: "/browse" },
   { label: "Search", href: "/search" },
   { label: "Watchlist", href: "/watchlist" },
+  { label: "Compare", href: "/compare" },
   { label: "About", href: "/about" },
 ];
 
