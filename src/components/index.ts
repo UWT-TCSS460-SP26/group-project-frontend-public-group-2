@@ -10,6 +10,7 @@ export { LoadingState } from "./LoadingState";
 export { ErrorState } from "./ErrorState";
 export { SignInPrompt } from "./SignInPrompt";
 export { ConfirmDialog } from "./ConfirmDialog";
+export { CommandPalette } from "./CommandPalette";
 export { RatingControl } from "./RatingControl";
 export { ThemeToggle } from "./ThemeToggle";
 export { GrainOverlay } from "./GrainOverlay";
