@@ -31,14 +31,17 @@ const phases = [
 const builtOn = [
   {
     name: "Group 1",
+    role: "Upstream API",
     note: "Our upstream partner. Their REST API powers everything you see here — browse, search, title detail, ratings, and reviews.",
   },
   {
     name: "TMDB",
+    role: "Catalog metadata",
     note: "The Movie Database supplies the catalog metadata, posters, and stills behind every title.",
   },
   {
     name: "Auth²",
+    role: "Identity",
     note: "OAuth2 sign-in — the secure identity layer that gates rating and reviewing.",
   },
 ];
@@ -46,43 +49,101 @@ const builtOn = [
 export default function AboutPage() {
   return (
     <PageContainer>
+      <MetaText
+        sx={{
+          display: "block",
+          mb: 1.5,
+          color: "primary.dark",
+          textTransform: "uppercase",
+          letterSpacing: "0.14em",
+        }}
+      >
+        TCSS 460 · UW Tacoma · Spring 2026
+      </MetaText>
       <PageTitle title="About" subtitle="Who built this, and what it's built on." />
 
-      <Box component="section" sx={{ maxWidth: 720, mb: { xs: 7, md: 9 } }}>
-        <Typography sx={{ color: "text.secondary", lineHeight: 1.75, fontSize: { xs: "1rem", md: "1.1rem" } }}>
+      {/* Lead — the first line carries editorial weight in serif, the rest reads
+          as quiet supporting copy. */}
+      <Box component="section" sx={{ maxWidth: 760, mb: { xs: 8, md: 11 } }}>
+        <Typography
+          sx={{
+            fontFamily: "var(--font-fraunces), Georgia, serif",
+            fontSize: { xs: "1.4rem", md: "1.75rem" },
+            lineHeight: 1.35,
+            mb: 2.5,
+          }}
+        >
+          A warm, gallery-quiet place to keep the films and shows worth your time.
+        </Typography>
+        <Typography sx={{ color: "text.secondary", lineHeight: 1.75, fontSize: { xs: "1rem", md: "1.05rem" } }}>
           A consumer app for browsing, searching, rating, and reviewing movies and TV —
           built by Group 2 for TCSS 460 (Client/Server Programming, UW Tacoma, Spring 2026).
           Over one quarter the four of us shipped two halves of the same product: first the
           REST API in Sprints 1–4, then this editorial front-end on top of it in Sprints 5–8.
-          The look — &ldquo;Repertory, evolved&rdquo; — is our take on a warm, gallery-quiet
-          place to keep the films and shows worth your time.
+          The look — &ldquo;Repertory, evolved&rdquo; — is our own.
         </Typography>
       </Box>
 
-      <Box component="section" sx={{ mb: { xs: 7, md: 9 } }}>
+      <Box component="section" sx={{ mb: { xs: 8, md: 11 } }}>
         <SectionHeading>The team</SectionHeading>
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-            gap: { xs: 3, md: 4 },
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
+            gap: { xs: 2, md: 2.5 },
           }}
         >
           {team.map((member, i) => (
             <Reveal key={member.name} index={i}>
-              <Box sx={{ borderTop: "1px solid", borderColor: "divider", pt: 2 }}>
-                <Typography
-                  sx={{
-                    fontFamily: "var(--font-fraunces), Georgia, serif",
-                    fontSize: "1.35rem",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {member.name}
-                </Typography>
-                <MetaText sx={{ display: "block", mt: 0.75, textTransform: "uppercase" }}>
-                  {member.lane}
-                </MetaText>
+              <Box
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.75,
+                  p: { xs: 2.5, md: 3 },
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  {/* Brand monogram — emerald square echoing the header avatar. */}
+                  <Box
+                    aria-hidden
+                    sx={{
+                      width: 44,
+                      height: 44,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      bgcolor: "primary.main",
+                      color: "primary.contrastText",
+                      fontFamily: "var(--font-mono), ui-monospace, monospace",
+                      fontSize: "1.05rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {member.name.charAt(0)}
+                  </Box>
+                  <MetaText sx={{ color: "text.secondary" }}>
+                    {String(i + 1).padStart(2, "0")}
+                  </MetaText>
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{
+                      fontFamily: "var(--font-fraunces), Georgia, serif",
+                      fontSize: "1.35rem",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {member.name}
+                  </Typography>
+                  <MetaText sx={{ display: "block", mt: 0.75, textTransform: "uppercase", color: "text.secondary" }}>
+                    {member.lane}
+                  </MetaText>
+                </Box>
               </Box>
             </Reveal>
           ))}
@@ -92,32 +153,43 @@ export default function AboutPage() {
         </MetaText>
       </Box>
 
-      <Box component="section" sx={{ mb: { xs: 7, md: 9 } }}>
+      <Box component="section" sx={{ mb: { xs: 8, md: 11 } }}>
         <SectionHeading>Across the quarter</SectionHeading>
         <Box
           sx={{
             display: "grid",
             gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-            gap: { xs: 3, md: 4 },
+            gap: { xs: 2, md: 2.5 },
           }}
         >
           {phases.map((phase, i) => (
             <Reveal key={phase.sprints} index={i}>
-              <Box sx={{ borderTop: "1px solid", borderColor: "divider", pt: 2 }}>
-                <MetaText sx={{ display: "block", color: "primary.dark", textTransform: "uppercase" }}>
+              <Box
+                sx={{
+                  height: "100%",
+                  p: { xs: 2.5, md: 3.5 },
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                  // Accent edge marks each phase without shouting.
+                  borderTop: "2px solid",
+                  borderTopColor: "primary.main",
+                }}
+              >
+                <MetaText sx={{ display: "block", color: "primary.dark", textTransform: "uppercase", letterSpacing: "0.12em" }}>
                   {phase.sprints}
                 </MetaText>
                 <Typography
                   sx={{
                     fontFamily: "var(--font-fraunces), Georgia, serif",
-                    fontSize: "1.25rem",
-                    mt: 0.75,
-                    mb: 1,
+                    fontSize: { xs: "1.35rem", md: "1.5rem" },
+                    mt: 1,
+                    mb: 1.25,
                   }}
                 >
                   {phase.title}
                 </Typography>
-                <Typography sx={{ color: "text.secondary", lineHeight: 1.65 }}>
+                <Typography sx={{ color: "text.secondary", lineHeight: 1.7 }}>
                   {phase.note}
                 </Typography>
               </Box>
@@ -128,20 +200,38 @@ export default function AboutPage() {
 
       <Box component="section">
         <SectionHeading>Built on</SectionHeading>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 3, md: 3.5 }, maxWidth: 760 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
+            gap: { xs: 2, md: 2.5 },
+          }}
+        >
           {builtOn.map((service, i) => (
             <Reveal key={service.name} index={i}>
-              <Box sx={{ borderTop: "1px solid", borderColor: "divider", pt: 2 }}>
+              <Box
+                sx={{
+                  height: "100%",
+                  p: { xs: 2.5, md: 3 },
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                }}
+              >
+                <MetaText sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                  {service.role}
+                </MetaText>
                 <Typography
                   sx={{
                     fontFamily: "var(--font-fraunces), Georgia, serif",
-                    fontSize: "1.2rem",
-                    mb: 0.75,
+                    fontSize: "1.25rem",
+                    mt: 1,
+                    mb: 1,
                   }}
                 >
                   {service.name}
                 </Typography>
-                <Typography sx={{ color: "text.secondary", lineHeight: 1.65 }}>
+                <Typography sx={{ color: "text.secondary", lineHeight: 1.7 }}>
                   {service.note}
                 </Typography>
               </Box>

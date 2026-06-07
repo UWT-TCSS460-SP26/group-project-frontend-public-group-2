@@ -104,10 +104,7 @@ export function TitleFacts({ tmdb }: TitleFactsProps) {
   if (rows.length === 0 && links.length === 0) return null;
 
   return (
-    <Box
-      component="section"
-      sx={{ mt: 6, pt: 3, borderTop: "1px solid", borderColor: "divider" }}
-    >
+    <Box component="section">
       <SectionHeading>Details</SectionHeading>
 
       {rows.length > 0 && (

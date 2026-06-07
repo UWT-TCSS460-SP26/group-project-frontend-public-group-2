@@ -537,40 +537,77 @@ export default async function TitleDetailPage({
           ))}
         </Box>
 
-        <SectionHeading>Synopsis</SectionHeading>
-        <Typography
-          sx={{ color: "text.primary", lineHeight: 1.7, maxWidth: 720 }}
-        >
-          {overview ?? "No synopsis available."}
-        </Typography>
-
-        {/* Facts panel — status, language, money, production, external links,
-            straight from the enriched TMDB block (Jonathan, JO-2). Renders nothing
-            when the payload carries none of these fields. */}
-        <TitleFacts tmdb={tmdb} />
-
-        {/* Your rating — signed-in users get the control (Collins, C1/C2);
-            signed-out visitors get an inert sign-in prompt (Story 5). */}
+        {/* Editorial two-column: synopsis + details on the left, a defined
+            "Your rating" panel on the right. On md+ the panel is a sticky aside;
+            on mobile everything stacks (synopsis → rating → details). */}
         <Box
           sx={{
-            mt: 6,
-            pt: 3,
-            borderTop: "1px solid",
-            // Accent-tinted hairline rule — a subtle per-title mix over the
-            // neutral divider so the section breaks pick up the poster's hue.
-            borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
+            display: "grid",
+            gap: { xs: 4, md: 6 },
+            gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) 340px" },
+            gridTemplateAreas: {
+              xs: `"synopsis" "rating" "details"`,
+              md: `"synopsis rating" "details rating"`,
+            },
+            alignItems: "start",
           }}
         >
-          <SectionHeading>Your rating</SectionHeading>
-          {canWrite ? (
-            <RatingControl
-              tmdbId={id}
-              mediaType={mediaType}
-              useTitleAccent
-            />
-          ) : (
-            <SignInPrompt action="rate this title" />
-          )}
+          <Box component="section" sx={{ gridArea: "synopsis" }}>
+            <SectionHeading>Synopsis</SectionHeading>
+            <Typography sx={{ color: "text.primary", lineHeight: 1.7, maxWidth: 680 }}>
+              {overview ?? "No synopsis available."}
+            </Typography>
+          </Box>
+
+          {/* Facts panel — status, language, money, production, external links,
+              straight from the enriched TMDB block (Jonathan, JO-2). Renders nothing
+              when the payload carries none of these fields. */}
+          <Box sx={{ gridArea: "details" }}>
+            <TitleFacts tmdb={tmdb} />
+          </Box>
+
+          {/* Your rating — a defined surface panel so the primary action reads as
+              intentional, not bare stars. Signed-in users get the control
+              (Collins, C1/C2); signed-out visitors get an inert prompt (Story 5). */}
+          <Box
+            component="aside"
+            sx={{
+              gridArea: "rating",
+              position: { md: "sticky" },
+              top: { md: 92 },
+              border: "1px solid",
+              // Accent-tinted hairline — a subtle per-title mix over the neutral
+              // divider so the panel picks up the poster's hue.
+              borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 30%, var(--mui-palette-divider))`,
+              bgcolor: "background.paper",
+              p: { xs: 2.5, md: 3 },
+            }}
+          >
+            <SectionHeading mb={averageScore !== undefined ? 0.5 : 2}>
+              Your rating
+            </SectionHeading>
+            {averageScore !== undefined && (
+              <MetaText
+                sx={{
+                  display: "block",
+                  mb: 2.5,
+                  color: "text.secondary",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                Community {averageScore.toFixed(1)}
+                {ratingCount !== undefined
+                  ? ` · ${ratingCount} ${ratingCount === 1 ? "rating" : "ratings"}`
+                  : ""}
+              </MetaText>
+            )}
+            {canWrite ? (
+              <RatingControl tmdbId={id} mediaType={mediaType} useTitleAccent />
+            ) : (
+              <SignInPrompt action="rate this title" />
+            )}
+          </Box>
         </Box>
 
         {/* ReviewsProvider coordinates the community list and the review form
@@ -582,33 +619,25 @@ export default async function TitleDetailPage({
           mediaType={mediaType}
         >
           <Box
+            component="section"
             sx={{
-              mt: 6,
-              pt: 3,
+              mt: { xs: 6, md: 8 },
+              pt: 4,
               borderTop: "1px solid",
               borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
             }}
           >
             <SectionHeading>Community</SectionHeading>
-
-            {averageScore !== undefined && (
-              <Typography sx={{ color: "text.secondary", mb: 1 }}>
-                Average rating: {averageScore.toFixed(1)}
-                {ratingCount !== undefined
-                  ? ` (${ratingCount} ${ratingCount === 1 ? "rating" : "ratings"})`
-                  : ""}
-              </Typography>
-            )}
-
             <ReviewList />
           </Box>
 
           {/* Write a review — signed-in users get the form (Jonathan, J1/J2);
               signed-out visitors get an inert sign-in prompt (Story 5). */}
           <Box
+            component="section"
             sx={{
-              mt: 6,
-              pt: 3,
+              mt: { xs: 6, md: 8 },
+              pt: 4,
               borderTop: "1px solid",
               borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
             }}
