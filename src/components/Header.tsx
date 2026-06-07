@@ -1,28 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import AppBar from "@mui/material/AppBar";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import ClickAwayListener from "@mui/material/ClickAwayListener";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
-import InputBase from "@mui/material/InputBase";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import MenuIcon from "@mui/icons-material/Menu";
-import CloseIcon from "@mui/icons-material/Close";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useWatchlist } from "@/lib/watchlist";
 import { ThemeToggle } from "./ThemeToggle";
 import { MetaText } from "./MetaText";
+import { CommandPalette } from "./CommandPalette";
+import styles from "./Header.module.css";
 
 interface NavLink {
   label: string;
@@ -56,16 +55,25 @@ const menuPaperSx = {
   mt: 0.5,
 };
 
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName.toLowerCase();
+  return (
+    tagName === "input"
+    || tagName === "textarea"
+    || tagName === "select"
+    || target.isContentEditable
+  );
+}
+
 export function Header() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
-  const router = useRouter();
   const { count } = useWatchlist();
 
   const [navAnchor, setNavAnchor] = useState<null | HTMLElement>(null);
   const [accountAnchor, setAccountAnchor] = useState<null | HTMLElement>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [commandOpen, setCommandOpen] = useState(false);
 
   const isAuthenticated =
     status === "authenticated" && Boolean(session?.user && session.accessToken);
@@ -74,18 +82,20 @@ export function Header() {
 
   const closeNav = () => setNavAnchor(null);
   const closeAccount = () => setAccountAnchor(null);
-  const closeSearch = () => {
-    setSearchOpen(false);
-    setQuery("");
-  };
 
-  const submitSearch = (event: React.FormEvent) => {
-    event.preventDefault();
-    const q = query.trim();
-    if (!q) return;
-    router.push(`/search?q=${encodeURIComponent(q)}`);
-    closeSearch();
-  };
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const isCommandShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
+      const isSlashShortcut = event.key === "/" && !isEditableTarget(event.target);
+      if (!isCommandShortcut && !isSlashShortcut) return;
+
+      event.preventDefault();
+      setCommandOpen(true);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const avatar = (size: number) => (
     <Avatar
@@ -115,7 +125,7 @@ export function Header() {
           gap: 1,
         }}
       >
-        <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
+        <Link href="/" className={styles.brandLink}>
           <Typography
             component="span"
             sx={{
@@ -136,7 +146,7 @@ export function Header() {
           {navLinks.map((link) => {
             const active = pathname === link.href;
             return (
-              <Link key={link.href} href={link.href} style={{ textDecoration: "none" }}>
+              <Link key={link.href} href={link.href} className={styles.navLink}>
                 <Box
                   component="span"
                   sx={{
@@ -168,57 +178,14 @@ export function Header() {
 
         {/* Right cluster */}
         <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, md: 1 } }}>
-          {/* Search: icon only; clicking expands a pill that closes on click-away. */}
-          <ClickAwayListener
-            onClickAway={() => {
-              if (searchOpen) closeSearch();
-            }}
+          <IconButton
+            onClick={() => setCommandOpen(true)}
+            aria-label="Open command palette"
+            size="small"
+            sx={iconSx}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              {searchOpen && (
-                <Box
-                  component="form"
-                  onSubmit={submitSearch}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.75,
-                    width: { xs: 160, sm: 220, md: 280 },
-                    px: 1.5,
-                    py: 0.4,
-                    borderRadius: 999,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    bgcolor: "background.paper",
-                    transition: "border-color 160ms ease",
-                    "&:focus-within": { borderColor: "primary.main" },
-                  }}
-                >
-                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                  <InputBase
-                    autoFocus
-                    fullWidth
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") closeSearch();
-                    }}
-                    placeholder="Search movies & TV…"
-                    inputProps={{ "aria-label": "Search movies and TV" }}
-                    sx={{ fontSize: "0.9rem", color: "text.primary" }}
-                  />
-                </Box>
-              )}
-              <IconButton
-                onClick={() => setSearchOpen((o) => !o)}
-                aria-label={searchOpen ? "Close search" : "Search"}
-                size="small"
-                sx={iconSx}
-              >
-                {searchOpen ? <CloseIcon fontSize="small" /> : <SearchIcon fontSize="small" />}
-              </IconButton>
-            </Box>
-          </ClickAwayListener>
+            <SearchIcon fontSize="small" />
+          </IconButton>
 
           {/* Desktop theme + account */}
           <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
@@ -355,6 +322,8 @@ export function Header() {
           Sign out
         </MenuItem>
       </Menu>
+
+      <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
     </AppBar>
   );
 }

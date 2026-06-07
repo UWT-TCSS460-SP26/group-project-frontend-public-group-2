@@ -7,6 +7,7 @@ import {
   GenreChip,
   MetaText,
   PageContainer,
+  RecentlyViewedRecorder,
   SectionHeading,
   SignInPrompt,
   StatBadge,
@@ -233,6 +234,16 @@ export default async function TitleDetailPage({
     runtime ? `${runtime} min` : undefined,
     typeLabel,
   ].filter((part): part is string => Boolean(part));
+  const numericId = Number(id);
+  const recentlyViewedItem = Number.isFinite(numericId)
+    ? {
+        id: numericId,
+        mediaType,
+        title,
+        posterPath: asString(tmdb.poster_path) ?? asString(tmdb.posterUrl) ?? null,
+        year: releaseYear ? String(releaseYear) : undefined,
+      }
+    : null;
 
   // The hero is an intentionally dark cinematic band in BOTH color schemes — its
   // text always sits over a dark scrim — so it uses fixed white/over-dark values
@@ -245,14 +256,13 @@ export default async function TitleDetailPage({
     "radial-gradient(ellipse 70% 60% at 25% 30%, rgba(30,122,90,0.18) 0%, rgba(15,14,12,0) 60%)," +
     "linear-gradient(135deg, #1A1815 0%, #0F0E0C 60%, #15130F 100%)";
 
-  // Watchlist entry needs a numeric tmdb id (route param is the id string).
-  const numericId = Number(id);
-
   return (
     // Per-title accent (JO-2): defaults to the brand emerald/mint, then adopts a
     // luminance-clamped color extracted from the poster client-side. Descendants
     // opt in via `var(--title-accent)` — never applied to body text.
     <TitleColorScope posterUrl={posterUrl}>
+      {recentlyViewedItem && <RecentlyViewedRecorder item={recentlyViewedItem} />}
+
       {/* ── Cinematic hero band: full-bleed backdrop + scrim/vignette, with the
           poster overlapping the bottom-left and the title/meta/tagline over the
           scrim. The backdrop layer is the only thing clipped, so the poster can

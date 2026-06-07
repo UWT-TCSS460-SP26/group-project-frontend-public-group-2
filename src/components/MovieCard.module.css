@@ -1,0 +1,9 @@
+.cardLink {
+  color: inherit;
+  display: block;
+  text-decoration: none;
+}
+
+.posterImage {
+  object-fit: cover;
+}
