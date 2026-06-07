@@ -2,17 +2,20 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { MetaText } from "@/components/MetaText";
 import { SectionHeading } from "@/components/SectionHeading";
+import { StatBadge } from "@/components/StatBadge";
 import { deleteRating, updateRating } from "@/lib/actions/ratings";
 import { deleteReview, updateReview } from "@/lib/actions/reviews";
 import { titleKey, type TitleSummaryByKey } from "@/lib/title-summary";
@@ -106,11 +109,85 @@ function SectionTitle({
         {title}
       </SectionHeading>
       {count !== undefined && (
-        <Chip
-          label={`${count} ${count === 1 ? "item" : "items"}`}
-          size="small"
-          variant="outlined"
+        <StatBadge>{`${count} ${count === 1 ? "item" : "items"}`}</StatBadge>
+      )}
+    </Box>
+  );
+}
+
+/** Small editorial "X rated · Y reviewed" tally above the sections. */
+function SummaryHeader({ rated, reviewed }: { rated: number; reviewed: number }) {
+  return (
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.25 }}>
+      <StatBadge
+        icon={<StarRoundedIcon sx={{ fontSize: 14, color: "primary.main" }} />}
+      >
+        {`${rated} rated`}
+      </StatBadge>
+      <StatBadge>{`${reviewed} reviewed`}</StatBadge>
+    </Box>
+  );
+}
+
+/**
+ * Optimized poster thumbnail (next/image) linking to the title page. Shares the
+ * gallery framing used by <MovieCard>: hairline-bordered 2:3 frame on the paper
+ * surface, with an italic-serif "no poster" fallback. `alt` is always present.
+ *
+ * The poster is a redundant link to the same title page as the adjacent text
+ * link, so it's hidden from keyboard/AT (`tabIndex=-1` + `aria-hidden`) to avoid
+ * a duplicate tab stop and a double announcement — it stays clickable by mouse.
+ */
+function RowPoster({
+  href,
+  imageUrl,
+  title,
+}: {
+  href: string;
+  imageUrl?: string;
+  title: string;
+}) {
+  return (
+    <Box
+      component={Link}
+      href={href}
+      tabIndex={-1}
+      aria-hidden
+      sx={{
+        position: "relative",
+        display: "block",
+        width: "100%",
+        aspectRatio: "2 / 3",
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+        overflow: "hidden",
+      }}
+    >
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt={`${title} poster`}
+          fill
+          sizes="(max-width: 600px) 72px, 88px"
+          style={{ objectFit: "cover" }}
         />
+      ) : (
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "text.secondary",
+            fontFamily: "var(--font-fraunces), Georgia, serif",
+            fontStyle: "italic",
+            fontSize: "0.8rem",
+          }}
+        >
+          no poster
+        </Box>
       )}
     </Box>
   );
@@ -203,28 +280,7 @@ function RatingRow({
           alignItems: "center",
         }}
       >
-        <Box
-          sx={{
-            width: "100%",
-            aspectRatio: "2 / 3",
-            borderRadius: 1,
-            border: "1px solid",
-            borderColor: "divider",
-            bgcolor: "background.default",
-            backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {!imageUrl && (
-            <Typography sx={{ color: "text.secondary", fontSize: "0.75rem" }}>
-              no poster
-            </Typography>
-          )}
-        </Box>
+        <RowPoster href={`/title/${item.tmdbId}`} imageUrl={imageUrl} title={title} />
 
         <Box sx={{ minWidth: 0 }}>
           <Typography
@@ -233,24 +289,33 @@ function RatingRow({
             sx={{
               color: "inherit",
               textDecoration: "none",
-              fontWeight: 700,
+              fontWeight: 600,
               "&:hover": { color: "primary.main" },
             }}
           >
             {title}
           </Typography>
-          <Typography sx={{ mt: 0.5, color: "text.secondary", fontSize: "0.9rem" }}>
-            {mediaLabel(item.mediaType)}
-            {summary.releaseYear ? ` · ${summary.releaseYear}` : ""}
-            {!summary.resolved ? " · details unavailable" : ""}
-          </Typography>
+          <MetaText
+            sx={{ display: "block", mt: 0.75, textTransform: "uppercase" }}
+          >
+            {[
+              mediaLabel(item.mediaType),
+              summary.releaseYear ? String(summary.releaseYear) : undefined,
+              !summary.resolved ? "details unavailable" : undefined,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </MetaText>
         </Box>
 
         <Box
           sx={{
             gridColumn: { xs: "2", sm: "auto" },
             justifySelf: { xs: "start", sm: "end" },
-            textAlign: { xs: "left", sm: "right" },
+            display: "flex",
+            flexDirection: "column",
+            alignItems: { xs: "flex-start", sm: "flex-end" },
+            gap: 0.5,
           }}
         >
           {editing ? (
@@ -265,12 +330,18 @@ function RatingRow({
             />
           ) : (
             <>
-              <Typography sx={{ fontWeight: 700, fontSize: "1.25rem" }}>
-                {item.score}/10
-              </Typography>
-              <Typography sx={{ color: "text.secondary", fontSize: "0.8rem" }}>
+              <StatBadge
+                icon={
+                  <StarRoundedIcon
+                    sx={{ fontSize: 14, color: "primary.main" }}
+                  />
+                }
+              >
+                {`${item.score}/10`}
+              </StatBadge>
+              <MetaText sx={{ textTransform: "uppercase" }}>
                 your rating
-              </Typography>
+              </MetaText>
             </>
           )}
         </Box>
@@ -441,28 +512,11 @@ function ReviewRow({
             alignItems: "start",
           }}
         >
-          <Box
-            sx={{
-              width: "100%",
-              aspectRatio: "2 / 3",
-              borderRadius: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              bgcolor: "background.default",
-              backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {!imageUrl && (
-              <Typography sx={{ color: "text.secondary", fontSize: "0.75rem" }}>
-                no poster
-              </Typography>
-            )}
-          </Box>
+          <RowPoster
+            href={`/title/${review.tmdbId}`}
+            imageUrl={imageUrl}
+            title={displayTitle}
+          />
 
           <Box sx={{ minWidth: 0 }}>
             <Typography
@@ -471,7 +525,7 @@ function ReviewRow({
               sx={{
                 color: "inherit",
                 textDecoration: "none",
-                fontWeight: 700,
+                fontWeight: 600,
                 "&:hover": { color: "primary.main" },
               }}
             >
@@ -482,7 +536,8 @@ function ReviewRow({
                 sx={{
                   mt: 0.5,
                   color: "text.secondary",
-                  fontSize: "0.9rem",
+                  fontFamily: "var(--font-fraunces), Georgia, serif",
+                  fontSize: "0.95rem",
                   fontStyle: "italic",
                 }}
               >
@@ -502,12 +557,16 @@ function ReviewRow({
             >
               {review.description || "No review text provided."}
             </Typography>
-            <Typography sx={{ mt: 1, color: "text.secondary", fontSize: "0.85rem" }}>
-              {mediaLabel(review.mediaType)}
-              {summary.releaseYear ? ` · ${summary.releaseYear}` : ""}
-              {!summary.resolved ? ` · TMDB ${review.tmdbId}` : ""}
-              {date ? ` · ${date}` : ""}
-            </Typography>
+            <MetaText sx={{ display: "block", mt: 1, textTransform: "uppercase" }}>
+              {[
+                mediaLabel(review.mediaType),
+                summary.releaseYear ? String(summary.releaseYear) : undefined,
+                !summary.resolved ? `TMDB ${review.tmdbId}` : undefined,
+                date,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </MetaText>
           </Box>
         </Box>
       )}
@@ -590,52 +649,56 @@ export function ProfileRows({
   const hasReviews = reviews.length > 0;
 
   return (
-    <Box sx={{ display: "grid", gap: { xs: 5, md: 7 } }}>
-      <Box component="section" aria-labelledby="profile-ratings-heading">
-        <SectionTitle
-          id="profile-ratings-heading"
-          title="Your ratings"
-          count={ratings.length}
-        />
-        {ratingsError ? (
-          <Alert severity="error">{ratingsError}</Alert>
-        ) : hasRatings ? (
-          <Box sx={{ display: "grid", gap: 2 }}>
-            {ratings.map((item) => (
-              <RatingRow key={item.id} item={item} titles={titles} />
-            ))}
-          </Box>
-        ) : (
-          <EmptyState
-            message="You haven't rated anything yet."
-            detail="Rate a movie or TV show and it will show up here."
-          />
-        )}
-      </Box>
+    <Box sx={{ display: "grid", gap: { xs: 4, md: 5 } }}>
+      <SummaryHeader rated={ratings.length} reviewed={reviews.length} />
 
-      <Box component="section" aria-labelledby="profile-reviews-heading">
-        <SectionTitle
-          id="profile-reviews-heading"
-          title="Your reviews"
-          count={reviews.length}
-        />
-        {reviewsError ? (
-          <Alert severity="error">{reviewsError}</Alert>
-        ) : hasReviews ? (
-          <Box sx={{ display: "grid", gap: 2 }}>
-            {/* /reviews/me is intentionally thin. The titles map carries
-                the per-id title + poster we resolved in profile/page.tsx
-                via /movies/{id} and /tv/{id}. */}
-            {reviews.map((review) => (
-              <ReviewRow key={review.id} review={review} titles={titles} />
-            ))}
-          </Box>
-        ) : (
-          <EmptyState
-            message="You haven't reviewed anything yet."
-            detail="Write a review and it will show up here."
+      <Box sx={{ display: "grid", gap: { xs: 5, md: 7 } }}>
+        <Box component="section" aria-labelledby="profile-ratings-heading">
+          <SectionTitle
+            id="profile-ratings-heading"
+            title="Your ratings"
+            count={ratings.length}
           />
-        )}
+          {ratingsError ? (
+            <Alert severity="error">{ratingsError}</Alert>
+          ) : hasRatings ? (
+            <Box sx={{ display: "grid", gap: 2 }}>
+              {ratings.map((item) => (
+                <RatingRow key={item.id} item={item} titles={titles} />
+              ))}
+            </Box>
+          ) : (
+            <EmptyState
+              message="You haven't rated anything yet."
+              detail="Rate a movie or TV show and it will show up here."
+            />
+          )}
+        </Box>
+
+        <Box component="section" aria-labelledby="profile-reviews-heading">
+          <SectionTitle
+            id="profile-reviews-heading"
+            title="Your reviews"
+            count={reviews.length}
+          />
+          {reviewsError ? (
+            <Alert severity="error">{reviewsError}</Alert>
+          ) : hasReviews ? (
+            <Box sx={{ display: "grid", gap: 2 }}>
+              {/* /reviews/me is intentionally thin. The titles map carries
+                  the per-id title + poster we resolved in profile/page.tsx
+                  via /movies/{id} and /tv/{id}. */}
+              {reviews.map((review) => (
+                <ReviewRow key={review.id} review={review} titles={titles} />
+              ))}
+            </Box>
+          ) : (
+            <EmptyState
+              message="You haven't reviewed anything yet."
+              detail="Write a review and it will show up here."
+            />
+          )}
+        </Box>
       </Box>
     </Box>
   );
