@@ -89,3 +89,18 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Hero masthead settle — the featured backdrop fades up from black and eases out
+   of a slight zoom, so the image "arrives" instead of snapping in. Transform +
+   opacity only (GPU); runs once. Reduced-motion users get the end state instantly
+   via the global reduce reset above. (Hero.module.css references this by name.) */
+@keyframes hero-image-in {
+  from {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

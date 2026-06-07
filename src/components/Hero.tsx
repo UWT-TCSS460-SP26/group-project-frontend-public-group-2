@@ -15,6 +15,17 @@ interface HeroProps {
   backgroundImageUrl?: string | null;
 }
 
+// Staggered fade-up for the masthead copy — reuses the global `reveal-up` keyframe
+// (defined in globals.css so emotion can't mis-scope the name). `both` fill keeps
+// each block visible if the animation never runs; reduced-motion users skip it.
+function rise(delayMs: number) {
+  return {
+    animation: "reveal-up 560ms cubic-bezier(0.22, 0.61, 0.36, 1) both",
+    animationDelay: `${delayMs}ms`,
+    "@media (prefers-reduced-motion: reduce)": { animation: "none" },
+  } as const;
+}
+
 export function Hero({
   ctaHref,
   ctaLabel = "View",
@@ -64,6 +75,21 @@ export function Hero({
         }}
       />
 
+      {/* Brand accent: a soft emerald bloom anchored to the lower-left where the copy
+          sits — pulls the eye into the title and keeps the masthead from reading as a
+          generic darkened photo. `screen` lifts it over the scrim without muddying. */}
+      <Box
+        aria-hidden
+        sx={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          mixBlendMode: "screen",
+          backgroundImage:
+            "radial-gradient(70% 90% at 0% 100%, color-mix(in srgb, var(--mui-palette-primary-main) 28%, transparent) 0%, transparent 58%)",
+        }}
+      />
+
       <Box
         sx={{
           maxWidth: 1280,
@@ -76,7 +102,7 @@ export function Hero({
           zIndex: 1,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, ...rise(80) }}>
           <Box
             sx={{ width: 40, height: 1, bgcolor: "primary.main", opacity: 0.9 }}
           />
@@ -92,6 +118,7 @@ export function Hero({
             maxWidth: 900,
             mb: 2,
             overflowWrap: "anywhere",
+            ...rise(160),
           }}
         >
           {title}
@@ -104,6 +131,7 @@ export function Hero({
               opacity: 0.82,
               mb: blurb ? 3 : ctaHref ? 4 : 0,
               textTransform: "uppercase",
+              ...rise(240),
             }}
           >
             {meta}
@@ -122,26 +150,29 @@ export function Hero({
               WebkitLineClamp: { xs: 3, md: 4 },
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
+              ...rise(300),
             }}
           >
             {blurb}
           </Typography>
         )}
         {ctaHref && (
-          <ButtonLink
-            href={ctaHref}
-            variant="contained"
-            color="primary"
-            sx={{
-              fontFamily: "var(--font-mono), ui-monospace, monospace",
-              fontSize: "0.75rem",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              px: 2.5,
-            }}
-          >
-            {ctaLabel}
-          </ButtonLink>
+          <Box sx={{ ...rise(380) }}>
+            <ButtonLink
+              href={ctaHref}
+              variant="contained"
+              color="primary"
+              sx={{
+                fontFamily: "var(--font-mono), ui-monospace, monospace",
+                fontSize: "0.75rem",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                px: 2.5,
+              }}
+            >
+              {ctaLabel}
+            </ButtonLink>
+          </Box>
         )}
       </Box>
     </Box>

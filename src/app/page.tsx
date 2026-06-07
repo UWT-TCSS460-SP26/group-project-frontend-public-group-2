@@ -13,6 +13,7 @@ import {
   Rail,
   RailSkeleton,
   RecentlyViewedRail,
+  Reveal,
   StatBadge,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
@@ -370,8 +371,10 @@ async function PopularRail() {
 
   return (
     <RailSection index={index} title={title}>
-      {movies.map((movie) => (
-        <MovieCard key={movie.id} movie={movie} />
+      {movies.map((movie, i) => (
+        <Reveal key={movie.id} index={i}>
+          <MovieCard movie={movie} />
+        </Reveal>
       ))}
     </RailSection>
   );
@@ -406,19 +409,20 @@ async function TopRatedRail() {
 
   return (
     <RailSection index={index} title={title}>
-      {items.map((item) => (
-        <MovieCard
-          key={`${item.mediaType}-${item.tmdbId}`}
-          movie={toMovieFromCommunity(item)}
-          mediaType={item.mediaType}
-          badge={
-            <StatBadge
-              icon={<StarRoundedIcon sx={{ fontSize: 14, color: "primary.main" }} />}
-            >
-              {formatScore(item._avg.score)}
-            </StatBadge>
-          }
-        />
+      {items.map((item, i) => (
+        <Reveal key={`${item.mediaType}-${item.tmdbId}`} index={i}>
+          <MovieCard
+            movie={toMovieFromCommunity(item)}
+            mediaType={item.mediaType}
+            badge={
+              <StatBadge
+                icon={<StarRoundedIcon sx={{ fontSize: 14, color: "primary.main" }} />}
+              >
+                {formatScore(item._avg.score)}
+              </StatBadge>
+            }
+          />
+        </Reveal>
       ))}
     </RailSection>
   );
@@ -453,13 +457,14 @@ async function MostDiscussedRail() {
 
   return (
     <RailSection index={index} title={title}>
-      {items.map((item) => (
-        <MovieCard
-          key={`${item.mediaType}-${item.tmdbId}`}
-          movie={toMovieFromCommunity(item)}
-          mediaType={item.mediaType}
-          badge={<StatBadge>{formatCount(item._count.score)}</StatBadge>}
-        />
+      {items.map((item, i) => (
+        <Reveal key={`${item.mediaType}-${item.tmdbId}`} index={i}>
+          <MovieCard
+            movie={toMovieFromCommunity(item)}
+            mediaType={item.mediaType}
+            badge={<StatBadge>{formatCount(item._count.score)}</StatBadge>}
+          />
+        </Reveal>
       ))}
     </RailSection>
   );
@@ -497,8 +502,10 @@ async function TvRail() {
 
   return (
     <RailSection index={index} title={title} tag={tag}>
-      {shows.map((show) => (
-        <MovieCard key={show.id} movie={show} mediaType="tv" metaSuffix="TV" />
+      {shows.map((show, i) => (
+        <Reveal key={show.id} index={i}>
+          <MovieCard movie={show} mediaType="tv" metaSuffix="TV" />
+        </Reveal>
       ))}
     </RailSection>
   );
