@@ -35,6 +35,10 @@ export interface Movie {
   release_date?: string;
   /** ISO 8601 date string "YYYY-MM-DD". Present on TV results instead of release_date. */
   first_air_date?: string;
+  /** Genre names when an enriched result includes them. */
+  genres?: string[];
+  /** Aggregate 0-10 score when an enriched result includes it. */
+  rating?: number;
   language: string;
 }
 

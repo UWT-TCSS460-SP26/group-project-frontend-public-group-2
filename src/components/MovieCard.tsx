@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { MetaText } from "./MetaText";
 import { WatchlistButton } from "./WatchlistButton";
+import styles from "./MovieCard.module.css";
 import type { Movie, MediaType } from "@/types/media";
 import { TMDB_IMG_BASE } from "@/types/media";
 
@@ -14,6 +15,7 @@ interface MovieCardProps {
   metaSuffix?: string;
   /** Used for the watchlist entry; defaults to "movie". */
   mediaType?: MediaType;
+  badge?: React.ReactNode;
 }
 
 export function MovieCard({
@@ -21,6 +23,7 @@ export function MovieCard({
   hrefPrefix = "/title",
   metaSuffix,
   mediaType = "movie",
+  badge,
 }: MovieCardProps) {
   const href = `${hrefPrefix}/${movie.id}`;
 
@@ -39,7 +42,7 @@ export function MovieCard({
   return (
     <Link
       href={href}
-      style={{ textDecoration: "none", color: "inherit", display: "block" }}
+      className={styles.cardLink}
     >
       <Box
         sx={{
@@ -71,7 +74,7 @@ export function MovieCard({
               alt={movie.title}
               fill
               sizes="(max-width: 600px) 50vw, (max-width: 900px) 33vw, 17vw"
-              style={{ objectFit: "cover" }}
+              className={styles.posterImage}
             />
           ) : (
             <Typography
@@ -84,6 +87,18 @@ export function MovieCard({
             >
               no poster
             </Typography>
+          )}
+
+          {badge && (
+            <Box
+              sx={{
+                position: "absolute",
+                left: 6,
+                bottom: 6,
+              }}
+            >
+              {badge}
+            </Box>
           )}
 
           {/* Watchlist toggle — revealed on hover/focus, always shown on touch. */}
