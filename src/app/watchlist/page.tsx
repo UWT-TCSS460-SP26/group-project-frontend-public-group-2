@@ -8,11 +8,12 @@ import {
   MovieCard,
   PageContainer,
   PageTitle,
+  Reveal,
 } from "@/components";
 import { useWatchlist } from "@/lib/watchlist";
 import type { Movie } from "@/types/media";
 
-// Hydration guard so we don't flash the empty state before localStorage is read.
+// Hydration guard — prevents flashing the empty state before localStorage is read.
 const emptySubscribe = () => () => {};
 function useHydrated() {
   return useSyncExternalStore(emptySubscribe, () => true, () => false);
@@ -38,7 +39,7 @@ export default function WatchlistPage() {
             detail="Tap the bookmark on any title to add it to your watchlist."
           />
           <ButtonLink
-            href="/"
+            href="/browse"
             variant="outlined"
             sx={{
               fontFamily: "var(--font-mono), ui-monospace, monospace",
@@ -47,7 +48,7 @@ export default function WatchlistPage() {
               textTransform: "uppercase",
             }}
           >
-            Find something to watch
+            Browse titles →
           </ButtonLink>
         </Box>
       ) : (
@@ -58,25 +59,28 @@ export default function WatchlistPage() {
               xs: "repeat(2, 1fr)",
               sm: "repeat(3, 1fr)",
               md: "repeat(5, 1fr)",
+              lg: "repeat(6, 1fr)",
             },
-            gap: 3,
+            gap: { xs: 2, md: 3 },
           }}
         >
-          {items.map((item) => {
+          {items.map((item, i) => {
             const movie: Movie = {
               id: item.id,
               title: item.title,
               overview: "",
               poster_path: item.posterPath,
-              release_date: item.year ? `${item.year}-01-01` : "",
+              release_date: item.year ? `${item.year}-01-01` : undefined,
               language: "",
             };
             return (
-              <MovieCard
-                key={`${item.mediaType}-${item.id}`}
-                movie={movie}
-                mediaType={item.mediaType}
-              />
+              <Reveal key={`${item.mediaType}-${item.id}`} index={i}>
+                <MovieCard
+                  movie={movie}
+                  mediaType={item.mediaType}
+                  metaSuffix={item.mediaType === "tv" ? "TV" : undefined}
+                />
+              </Reveal>
             );
           })}
         </Box>
