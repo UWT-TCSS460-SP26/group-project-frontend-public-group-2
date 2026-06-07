@@ -10,6 +10,10 @@ import { titleKey, type TitleSummary, type TitleSummaryByKey } from "./title-sum
 
 type UnknownRecord = Record<string, unknown>;
 
+interface EnrichTitlesOptions {
+  init?: RequestInit;
+}
+
 function asString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0
     ? value.trim()
@@ -59,13 +63,14 @@ function toSummary(payload: UnknownRecord): TitleSummary | null {
 async function fetchByType(
   mediaType: MediaType,
   tmdbId: string,
+  options: EnrichTitlesOptions,
 ): Promise<TitleSummary | null> {
   const path = mediaType === "movie" ? `/movies/${tmdbId}` : `/tv/${tmdbId}`;
   try {
     const payload = await fetchGroupOneApi<UnknownRecord>(path, {
       // Avoid sticky "details unavailable" rows when upstream TMDB or the
       // partner service has a transient miss; always refetch on profile loads.
-      init: { cache: "no-store" },
+      init: options.init ?? { cache: "no-store" },
     });
     return toSummary(payload);
   } catch {
@@ -76,13 +81,14 @@ async function fetchByType(
 async function fetchOne(
   mediaType: MediaType,
   tmdbId: string,
+  options: EnrichTitlesOptions,
 ): Promise<TitleSummary | null> {
-  const primary = await fetchByType(mediaType, tmdbId);
+  const primary = await fetchByType(mediaType, tmdbId, options);
   if (primary) return primary;
 
   // Defensive fallback: older data can contain the wrong mediaType.
   const alternate: MediaType = mediaType === "movie" ? "tv" : "movie";
-  return fetchByType(alternate, tmdbId);
+  return fetchByType(alternate, tmdbId, options);
 }
 
 /**
@@ -92,6 +98,7 @@ async function fetchOne(
  */
 export async function enrichTitles(
   pairs: { mediaType: MediaType; tmdbId: string }[],
+  options: EnrichTitlesOptions = {},
 ): Promise<TitleSummaryByKey> {
   const unique = new Map<string, { mediaType: MediaType; tmdbId: string }>();
   for (const pair of pairs) {
@@ -100,7 +107,7 @@ export async function enrichTitles(
 
   const entries = await Promise.all(
     Array.from(unique.values()).map(async (pair) => {
-      const summary = await fetchOne(pair.mediaType, pair.tmdbId);
+      const summary = await fetchOne(pair.mediaType, pair.tmdbId, options);
       return [titleKey(pair.mediaType, pair.tmdbId), summary] as const;
     }),
   );
