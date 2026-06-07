@@ -29,9 +29,10 @@ interface NavLink {
   watchlist?: boolean;
 }
 
+// Search is intentionally absent here — the search icon (⌘K palette) is the
+// single search entry point, which then hands off to the /search page.
 const navLinks: NavLink[] = [
   { label: "Browse", href: "/browse" },
-  { label: "Search", href: "/search" },
   { label: "Watchlist", href: "/watchlist", watchlist: true },
   { label: "Compare", href: "/compare" },
   { label: "About", href: "/about" },
@@ -193,7 +194,8 @@ export function Header() {
         <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, md: 1 } }}>
           <IconButton
             onClick={() => setCommandOpen(true)}
-            aria-label="Open command palette"
+            aria-label="Search movies and TV"
+            title="Search (⌘K)"
             size="small"
             sx={iconSx}
           >
