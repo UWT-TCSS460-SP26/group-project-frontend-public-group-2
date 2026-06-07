@@ -1,5 +1,0 @@
-.heroImage {
-  object-fit: cover;
-  transform-origin: 60% 40%;
-  animation: hero-image-in 1200ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
-}

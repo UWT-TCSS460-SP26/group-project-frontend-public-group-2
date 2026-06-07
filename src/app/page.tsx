@@ -17,6 +17,7 @@ import {
   StatBadge,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
+import { titleHref } from "@/lib/title-route";
 import {
   getMostReviewedCommunityTitles,
   getTopRatedCommunityTitles,
@@ -43,8 +44,20 @@ interface TvResults {
   results: TvTitle[];
 }
 
+/** The single featured film shown in the editorial hero. */
+export interface HeroFeatured {
+  title: string;
+  year?: string;
+  runtime?: number;
+  director?: string;
+  genres: string[];
+  blurb?: string;
+  stillUrl: string | null;
+  href: string;
+}
+
 interface FeaturedHeroData {
-  posters: string[];
+  featured: HeroFeatured | null;
   marqueeItems: string[];
 }
 
@@ -52,9 +65,86 @@ type LoadResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: unknown };
 
-function posterUrl(path: string | null): string | null {
+type UnknownRecord = Record<string, unknown>;
+
+const TMDB_STILL_BASE = "https://image.tmdb.org/t/p/w1280";
+
+function asRecord(value: unknown): UnknownRecord | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as UnknownRecord;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
+function asNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return undefined;
+}
+
+function asNames(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => asString(asRecord(item)?.name) ?? (typeof item === "string" ? item : undefined))
+    .filter((name): name is string => Boolean(name));
+}
+
+/** Full-bleed still: prefer the TMDB backdrop, fall back to the poster. */
+function stillUrl(backdrop: string | undefined, poster: string | null): string | null {
+  const path = backdrop ?? poster ?? undefined;
   if (!path) return null;
-  return path.startsWith("http") ? path : `${TMDB_IMG_BASE}${path}`;
+  if (path.startsWith("http")) return path;
+  return backdrop ? `${TMDB_STILL_BASE}${path}` : `${TMDB_IMG_BASE}${path}`;
+}
+
+/** Pull the credited director out of the enriched TMDB credits block, if present. */
+function extractDirector(tmdb: UnknownRecord): string | undefined {
+  const crew = asRecord(tmdb.credits)?.crew;
+  if (!Array.isArray(crew)) return undefined;
+  const director = crew.find((member) => asRecord(member)?.job === "Director");
+  return asString(asRecord(director)?.name);
+}
+
+async function fetchEnrichedMovie(id: number): Promise<UnknownRecord | null> {
+  try {
+    const payload = await fetchGroupOneApi<UnknownRecord>(
+      `/details/movie/${id}/enriched`,
+    );
+    const tmdb = asRecord(payload.tmdb);
+    // A wrong id / failed lookup comes back 200 with a TMDB error body.
+    if (!tmdb || tmdb.success === false || typeof tmdb.status_message === "string") {
+      return null;
+    }
+    return tmdb;
+  } catch {
+    return null;
+  }
+}
+
+// A rotating "issue" number gives the masthead an editorial cadence without any
+// hardcoded value — derived from the ISO week so it advances over the term.
+function issueLabel(date = new Date()): string {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) + 3);
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const week =
+    1 +
+    Math.round(
+      ((d.getTime() - firstThursday.getTime()) / 86400000 -
+        3 +
+        ((firstThursday.getUTCDay() + 6) % 7)) /
+        7,
+    );
+  return `NO. ${String(week).padStart(2, "0")}`;
+}
+
+function editionLabel(date = new Date()): string {
+  const seasons = ["WINTER", "SPRING", "SUMMER", "AUTUMN"];
+  const season = seasons[Math.floor((date.getMonth() / 12) * 4) % 4];
+  return `${season} ${date.getFullYear()}`;
 }
 
 function railTitle(index: number, title: string, tag?: string) {
@@ -194,12 +284,22 @@ async function loadFeaturedHero(): Promise<LoadResult<FeaturedHeroData>> {
     ]);
     const movies = data.results;
     if (!data || movies.length === 0) {
-      return { ok: true, data: { posters: [], marqueeItems: [] } };
+      return { ok: true, data: { featured: null, marqueeItems: [] } };
     }
 
-    const posters = movies
-      .map((m) => posterUrl(m.poster_path))
-      .filter((url): url is string => Boolean(url));
+    const top = movies[0];
+    const tmdb = await fetchEnrichedMovie(top.id);
+    const featured: HeroFeatured = {
+      title: top.title,
+      year: (top.release_date || asString(tmdb?.release_date))?.slice(0, 4) || undefined,
+      runtime: asNumber(tmdb?.runtime),
+      director: tmdb ? extractDirector(tmdb) : undefined,
+      genres: tmdb ? asNames(tmdb.genres) : [],
+      blurb: top.overview || asString(tmdb?.overview),
+      stillUrl: stillUrl(asString(tmdb?.backdrop_path), top.poster_path),
+      href: titleHref("movie", top.id),
+    };
+
     const popularTitles = movies.slice(0, RAIL_LIMIT).map((m) => m.title);
     const discussedTitles = mostReviewedResult.ok
       ? mostReviewedResult.data.map((item) => item.title)
@@ -209,7 +309,7 @@ async function loadFeaturedHero(): Promise<LoadResult<FeaturedHeroData>> {
       RAIL_LIMIT + 4,
     );
 
-    return { ok: true, data: { posters, marqueeItems } };
+    return { ok: true, data: { featured, marqueeItems } };
   } catch (error) {
     return { ok: false, error };
   }
@@ -265,8 +365,8 @@ async function FeaturedHero() {
     );
   }
 
-  const { posters, marqueeItems } = result.data;
-  if (posters.length === 0) {
+  const { featured, marqueeItems } = result.data;
+  if (!featured) {
     return (
       <PageContainer>
         <EmptyState
@@ -280,12 +380,9 @@ async function FeaturedHero() {
   return (
     <>
       <Hero
-        eyebrow="Repertory · Group 2"
-        title="The films worth revisiting."
-        blurb="A curated window into popular movies and TV — follow the community's favorites and keep a watchlist of everything worth your time."
-        posters={posters}
-        primaryCta={{ href: "/browse", label: "Browse catalog" }}
-        secondaryCta={{ href: "/search", label: "Search" }}
+        featured={featured}
+        issue={issueLabel()}
+        edition={editionLabel()}
       />
 
       <Marquee items={marqueeItems} label="Now Showing" />

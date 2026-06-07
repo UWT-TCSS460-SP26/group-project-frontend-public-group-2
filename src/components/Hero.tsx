@@ -2,36 +2,37 @@ import Box from "@mui/material/Box";
 import Image from "next/image";
 import Typography from "@mui/material/Typography";
 import { ButtonLink } from "./ButtonLink";
+import { MetaText } from "./MetaText";
 
-interface HeroCta {
+interface HeroFeatured {
+  title: string;
+  year?: string;
+  runtime?: number;
+  director?: string;
+  genres?: string[];
+  blurb?: string;
+  stillUrl?: string | null;
   href: string;
-  label: string;
 }
 
 interface HeroProps {
-  title: string;
-  eyebrow?: string;
-  blurb?: string;
-  /** Poster image URLs used to build the abstract film-wall backdrop. */
-  posters?: string[];
-  primaryCta?: HeroCta;
-  secondaryCta?: HeroCta;
+  featured: HeroFeatured;
+  /** Editorial catalog number, e.g. "NO. 07". */
+  issue?: string;
+  /** Edition label, e.g. "SPRING 2026". */
+  edition?: string;
+  ctaLabel?: string;
 }
 
-// A tilted mosaic of posters reads as "cinema" without leaning on a single
-// movie still. We cycle the available posters to fill the wall edge-to-edge.
-const TILE_COUNT = 28;
+// Crisp print "hairline" — a touch darker than the global divider so the magazine
+// compartments read as ruled, while still resolving from the ink text token (stays
+// in sync with light/dark via CSS variables). This is the only place it lives.
+const HAIRLINE = "1px solid color-mix(in srgb, var(--mui-palette-text-primary) 26%, transparent)";
 
-// Staggered fade-up for the masthead copy — reuses the global `reveal-up` keyframe
-// (defined in globals.css so emotion can't mis-scope the name). `both` fill keeps
-// each block visible if the animation never runs; reduced-motion users skip it.
-function rise(delayMs: number) {
-  return {
-    animation: "reveal-up 560ms cubic-bezier(0.22, 0.61, 0.36, 1) both",
-    animationDelay: `${delayMs}ms`,
-    "@media (prefers-reduced-motion: reduce)": { animation: "none" },
-  } as const;
-}
+// Same static SVG grain as <GrainOverlay>, scoped here over the still for a
+// tactile, printed-film feel. Decorative, GPU-composited, no JS.
+const NOISE =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E";
 
 const ctaSx = {
   fontFamily: "var(--font-mono), ui-monospace, monospace",
@@ -41,188 +42,240 @@ const ctaSx = {
   px: 2.5,
 } as const;
 
+function metaLine(issue: string | undefined, f: HeroFeatured): string {
+  const head = [issue, f.year, f.runtime ? `${f.runtime} MIN` : undefined]
+    .filter(Boolean)
+    .join("  /  ");
+  return f.director ? `${head}  —  DIR. ${f.director.toUpperCase()}` : head;
+}
+
 /**
- * Brand masthead — an abstract, tilted "film wall" of posters behind an editorial
- * scrim, rather than a single movie still. The poster grid is decorative
- * (aria-hidden); the copy and CTAs carry the meaning. Entrance is transform +
- * opacity only (GPU) and honors reduced-motion (see globals.css + `rise`).
+ * Boutique "Arthouse Print" masthead — an asymmetric magazine grid on warm bone
+ * paper, ruled with print hairlines: an editorial text column (Swiss numeral +
+ * oversized serif title + monospaced slate) beside a full-bleed cinematic still
+ * with vignette + grain. Built entirely from existing theme tokens so it reads as
+ * an evolution of the design system, not a separate skin. Fully responsive — the
+ * two columns stack (still first, then copy) on small screens, keeping the rules.
  */
 export function Hero({
-  title,
-  eyebrow = "Featured",
-  blurb,
-  posters = [],
-  primaryCta,
-  secondaryCta,
+  featured,
+  issue,
+  edition,
+  ctaLabel = "View the feature",
 }: HeroProps) {
-  const tiles = posters.length
-    ? Array.from({ length: TILE_COUNT }, (_, i) => posters[i % posters.length])
-    : [];
-
   return (
     <Box
       component="section"
       sx={{
-        position: "relative",
-        minHeight: { xs: 560, sm: 600, md: 680 },
-        bgcolor: "common.black",
-        display: "flex",
-        alignItems: "center",
-        overflow: "hidden",
-        borderBottom: "1px solid",
-        borderColor: "divider",
+        bgcolor: "background.default",
+        color: "text.primary",
+        borderTop: HAIRLINE,
+        // Closes the masthead and merges into the identical page background below.
+        borderBottom: HAIRLINE,
       }}
     >
-      {/* Abstract film wall: a rotated, oversized poster mosaic. Decorative only. */}
-      {tiles.length > 0 && (
+      <Box sx={{ maxWidth: 1280, mx: "auto" }}>
+        {/* Masthead strip */}
         <Box
-          aria-hidden
           sx={{
-            position: "absolute",
-            inset: "-16%",
-            transform: "rotate(-7deg)",
-            transformOrigin: "center",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+            px: { xs: 3, md: 6 },
+            py: { xs: 1.25, md: 1.5 },
+            borderBottom: HAIRLINE,
           }}
         >
-          <Box
+          <MetaText
             sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "repeat(4, 1fr)",
-                sm: "repeat(5, 1fr)",
-                md: "repeat(7, 1fr)",
-              },
-              gap: { xs: 1, md: 1.5 },
-              transform: "scale(1.2)",
-              transformOrigin: "center",
-              // Reuses the masthead settle keyframe (opacity + slight zoom-out).
-              animation: "hero-image-in 1500ms cubic-bezier(0.22, 0.61, 0.36, 1) both",
+              textTransform: "uppercase",
+              letterSpacing: "0.22em",
+              color: "text.primary",
             }}
           >
-            {tiles.map((src, i) => (
-              <Box
-                key={i}
+            Repertory — The Feature
+          </MetaText>
+          {edition && (
+            <MetaText sx={{ textTransform: "uppercase", letterSpacing: "0.22em" }}>
+              {edition}
+            </MetaText>
+          )}
+        </Box>
+
+        {/* Asymmetric magazine grid: editorial column + full-bleed still. */}
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "minmax(0, 5fr) minmax(0, 7fr)" },
+          }}
+        >
+          {/* Editorial column */}
+          <Box
+            sx={{
+              order: { xs: 2, md: 1 },
+              display: "flex",
+              flexDirection: "column",
+              px: { xs: 3, md: 6 },
+              py: { xs: 4, md: 6 },
+              // Hairline between stacked compartments (mobile) → vertical rule (desktop).
+              borderTop: { xs: HAIRLINE, md: "none" },
+              borderRight: { md: HAIRLINE },
+            }}
+          >
+            {/* Oversized Swiss numeral + slate label */}
+            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2.5, mb: { xs: 3, md: 4 } }}>
+              <Typography
+                aria-hidden
                 sx={{
-                  position: "relative",
-                  aspectRatio: "2 / 3",
-                  borderRadius: 1,
+                  fontFamily: "var(--font-inter), system-ui, sans-serif",
+                  fontWeight: 800,
+                  fontSize: { xs: "4.5rem", md: "7rem" },
+                  lineHeight: 0.78,
+                  letterSpacing: "-0.05em",
+                  color: "text.primary",
+                }}
+              >
+                1
+              </Typography>
+              <MetaText
+                component="span"
+                sx={{
+                  mt: 0.5,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.2em",
+                  lineHeight: 1.5,
+                  color: "primary.dark",
+                }}
+              >
+                Featured
+                <br />
+                Film
+              </MetaText>
+            </Box>
+
+            <Typography
+              variant="h1"
+              sx={{
+                fontFamily: "var(--font-fraunces), Georgia, serif",
+                fontSize: { xs: "2.6rem", sm: "3.2rem", md: "3.9rem" },
+                lineHeight: 1.02,
+                letterSpacing: "-0.01em",
+                mb: 2.5,
+                overflowWrap: "anywhere",
+              }}
+            >
+              {featured.title}
+            </Typography>
+
+            <MetaText
+              sx={{
+                display: "block",
+                textTransform: "uppercase",
+                letterSpacing: "0.12em",
+                color: "text.secondary",
+                mb: featured.genres?.length ? 1.25 : 3,
+              }}
+            >
+              {metaLine(issue, featured)}
+            </MetaText>
+
+            {featured.genres && featured.genres.length > 0 && (
+              <MetaText
+                sx={{
+                  display: "block",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.16em",
+                  color: "primary.dark",
+                  mb: 3,
+                }}
+              >
+                {featured.genres.slice(0, 3).join("  ·  ")}
+              </MetaText>
+            )}
+
+            {featured.blurb && (
+              <Typography
+                sx={{
+                  color: "text.secondary",
+                  fontSize: { xs: "0.98rem", md: "1.02rem" },
+                  lineHeight: 1.65,
+                  maxWidth: 460,
+                  mb: 4,
+                  display: "-webkit-box",
+                  WebkitLineClamp: { xs: 4, md: 5 },
+                  WebkitBoxOrient: "vertical",
                   overflow: "hidden",
-                  boxShadow:
-                    "0 12px 28px color-mix(in srgb, var(--mui-palette-common-black) 55%, transparent)",
+                }}
+              >
+                {featured.blurb}
+              </Typography>
+            )}
+
+            <Box sx={{ mt: "auto" }}>
+              <ButtonLink href={featured.href} variant="contained" color="primary" sx={ctaSx}>
+                {ctaLabel}
+              </ButtonLink>
+            </Box>
+          </Box>
+
+          {/* Full-bleed cinematic still */}
+          <Box
+            sx={{
+              order: { xs: 1, md: 2 },
+              position: "relative",
+              minHeight: { xs: 240, sm: 360, md: 560 },
+              bgcolor: "common.black",
+              overflow: "hidden",
+            }}
+          >
+            {featured.stillUrl && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  transformOrigin: "center",
+                  // Gentle settle-in (opacity + slight zoom-out). Keyframe in
+                  // globals.css; reduced-motion users get the end state instantly.
+                  animation: "hero-image-in 1300ms cubic-bezier(0.22, 0.61, 0.36, 1) both",
                 }}
               >
                 <Image
-                  src={src}
-                  alt=""
+                  src={featured.stillUrl}
+                  alt={featured.title}
                   fill
-                  sizes="160px"
+                  priority
+                  sizes="(max-width: 900px) 100vw, 58vw"
                   style={{ objectFit: "cover" }}
                 />
               </Box>
-            ))}
-          </Box>
-        </Box>
-      )}
+            )}
 
-      {/* Editorial scrim — left-heavy for legibility, plus a top/bottom vignette so
-          the wall blends into the header above and the page below. */}
-      <Box
-        aria-hidden
-        sx={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage: [
-            "linear-gradient(90deg, color-mix(in srgb, var(--mui-palette-common-black) 95%, transparent) 0%, color-mix(in srgb, var(--mui-palette-common-black) 80%, transparent) 40%, color-mix(in srgb, var(--mui-palette-common-black) 52%, transparent) 100%)",
-            "linear-gradient(180deg, color-mix(in srgb, var(--mui-palette-common-black) 72%, transparent) 0%, color-mix(in srgb, var(--mui-palette-common-black) 28%, transparent) 32%, color-mix(in srgb, var(--mui-palette-common-black) 80%, transparent) 100%)",
-          ].join(", "),
-        }}
-      />
-
-      {/* Brand accent: a soft emerald bloom behind the copy so the masthead reads as
-          designed, not a generic darkened photo. `screen` lifts it over the scrim. */}
-      <Box
-        aria-hidden
-        sx={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          mixBlendMode: "screen",
-          backgroundImage:
-            "radial-gradient(60% 95% at 6% 55%, color-mix(in srgb, var(--mui-palette-primary-main) 32%, transparent) 0%, transparent 60%)",
-        }}
-      />
-
-      <Box
-        sx={{
-          maxWidth: 1280,
-          mx: "auto",
-          width: "100%",
-          px: { xs: 3, md: 6 },
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        <Box sx={{ maxWidth: 640 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, ...rise(80) }}>
-            <Box sx={{ width: 40, height: 1, bgcolor: "primary.main", opacity: 0.9 }} />
-            <Typography variant="overline" sx={{ color: "primary.main" }}>
-              {eyebrow}
-            </Typography>
-          </Box>
-          <Typography
-            variant="h1"
-            sx={{
-              fontSize: { xs: "2.6rem", sm: "3.6rem", md: "4.75rem" },
-              lineHeight: 1.05,
-              color: "common.white",
-              mb: 3,
-              overflowWrap: "anywhere",
-              ...rise(160),
-            }}
-          >
-            {title}
-          </Typography>
-          {blurb && (
-            <Typography
+            {/* Cinematic vignette */}
+            <Box
+              aria-hidden
               sx={{
-                fontSize: { xs: "1.02rem", md: "1.15rem" },
-                color: "common.white",
-                opacity: 0.8,
-                maxWidth: 520,
-                lineHeight: 1.6,
-                mb: 4,
-                ...rise(260),
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                backgroundImage:
+                  "radial-gradient(125% 125% at 50% 42%, transparent 55%, color-mix(in srgb, var(--mui-palette-common-black) 58%, transparent) 100%)",
               }}
-            >
-              {blurb}
-            </Typography>
-          )}
-          {(primaryCta || secondaryCta) && (
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center", ...rise(360) }}>
-              {primaryCta && (
-                <ButtonLink href={primaryCta.href} variant="contained" color="primary" sx={ctaSx}>
-                  {primaryCta.label}
-                </ButtonLink>
-              )}
-              {secondaryCta && (
-                <ButtonLink
-                  href={secondaryCta.href}
-                  variant="outlined"
-                  sx={{
-                    ...ctaSx,
-                    color: "common.white",
-                    borderColor: "color-mix(in srgb, var(--mui-palette-common-white) 42%, transparent)",
-                    "&:hover": {
-                      borderColor: "common.white",
-                      backgroundColor: "color-mix(in srgb, var(--mui-palette-common-white) 8%, transparent)",
-                    },
-                  }}
-                >
-                  {secondaryCta.label}
-                </ButtonLink>
-              )}
-            </Box>
-          )}
+            />
+            {/* Printed-film grain */}
+            <Box
+              aria-hidden
+              sx={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                opacity: 0.14,
+                mixBlendMode: "overlay",
+                backgroundImage: `url("${NOISE}")`,
+                backgroundRepeat: "repeat",
+              }}
+            />
+          </Box>
         </Box>
       </Box>
     </Box>
