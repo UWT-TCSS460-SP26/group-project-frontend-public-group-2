@@ -77,6 +77,7 @@ src/lib/actions/
 ```
 
 All actions return `ActionResult<T>`:
+
 ```tsx
 import { createRating } from "@/lib/actions/ratings";
 
@@ -124,10 +125,31 @@ All shared components live in `src/components/` and are re-exported from the bar
 
 ```tsx
 import {
-  Header, Footer, PageContainer, PageTitle, SectionHeading,
-  MovieCard, Rail, Marquee, Numeral, StatBadge, GenreChip, MetaText,
-  CardSkeleton, RailSkeleton, Reveal, ButtonLink, WatchlistButton, ThemeToggle, GrainOverlay,
-  EmptyState, LoadingState, ErrorState, SignInPrompt, ConfirmDialog, RatingControl,
+  Header,
+  Footer,
+  PageContainer,
+  PageTitle,
+  SectionHeading,
+  MovieCard,
+  Rail,
+  Marquee,
+  Numeral,
+  StatBadge,
+  GenreChip,
+  MetaText,
+  CardSkeleton,
+  RailSkeleton,
+  Reveal,
+  ButtonLink,
+  WatchlistButton,
+  ThemeToggle,
+  GrainOverlay,
+  EmptyState,
+  LoadingState,
+  ErrorState,
+  SignInPrompt,
+  ConfirmDialog,
+  RatingControl,
 } from "@/components";
 ```
 
@@ -151,15 +173,22 @@ Do not create new card styles — extend `<MovieCard>` instead.
 
 Types are reconciled against Group 1's authoritative OpenAPI spec (`api-1.yaml`). Key exports:
 
-| Export | Purpose |
-| --- | --- |
-| `Movie` | One search/popular result item (`poster_path`, `release_date`, etc.) |
-| `SearchResults` | Paginated wrapper from `/movies/search` |
-| `TMDB_IMG_BASE` | CDN base — prepend to `poster_path` for a full image URL |
-| `Rating`, `Review` | Write response shapes (Sprint 7) |
-| `RatingInput`, `ReviewInput` | Request body shapes for POST actions |
-| `ActionResult<T>` | `{ ok: true; data: T } \| { ok: false; error: ActionError }` — returned by all Server Actions |
-| `MediaType` | `"movie" \| "tv"` |
+| Export                       | Purpose                                                                                                                                             |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Movie`                      | Shared item shape for movie AND TV results. Movies have `release_date`; TV shows have `first_air_date` — both optional, check whichever is present. |
+| `SearchResults`              | Paginated wrapper from `/movies/search`                                                                                                             |
+| `PopularResponse`            | Paginated wrapper from `/movies/popular` or `/tv/popular`                                                                                           |
+| `TMDB_IMG_BASE`              | CDN base — prepend to `poster_path` for a full image URL                                                                                            |
+| `Rating`, `Review`           | Write response shapes (Sprint 7)                                                                                                                    |
+| `RatingInput`, `ReviewInput` | Request body shapes for POST actions                                                                                                                |
+| `ActionResult<T>`            | `{ ok: true; data: T } \| { ok: false; error: ActionError }` — returned by all Server Actions                                                       |
+| `MediaType`                  | `"movie" \| "tv"`                                                                                                                                   |
+
+Pages that fetch live data should opt out of static caching:
+
+```tsx
+export const dynamic = "force-dynamic";
+```
 
 ### Provider tree
 

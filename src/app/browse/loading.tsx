@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import { CardSkeleton, PageContainer } from "@/components";
 
-export default function SearchLoading() {
+export default function BrowseLoading() {
   return (
     <PageContainer>
       <Box
@@ -17,7 +17,7 @@ export default function SearchLoading() {
           mt: 8,
         }}
       >
-        {Array.from({ length: 10 }).map((_, i) => (
+        {Array.from({ length: 20 }).map((_, i) => (
           <CardSkeleton key={i} />
         ))}
       </Box>
