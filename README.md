@@ -108,12 +108,48 @@ re-fetches its enriched aggregate (`cache: "no-store"`).
 - Detail page integration: [src/app/title/[id]/page.tsx](src/app/title/[id]/page.tsx)
 - Profile page: [src/app/profile/page.tsx](src/app/profile/page.tsx)
 
+## Sprint 8 Scope — "Ship It"
+
+The final sprint is a craft pass: a distinctive visual identity, smooth motion,
+the invented feature, TV made first-class, accessibility, and the ship gate.
+
+- **Visual identity — "Repertory, evolved":** one warm editorial-cinema system on
+  every route. Deep-emerald accent, oversized Fraunces display + IBM Plex Mono
+  meta, film-grain overlay, full-bleed imagery with scrims. Both **light
+  (gallery, default)** and **dark (cinema)** ship from a single MUI `colorSchemes`
+  CSS-variables theme ([src/theme.ts](src/theme.ts)) with a **no-flash** toggle
+  (`InitColorSchemeScript`). The dev-only [`/styleguide`](src/app/styleguide/page.tsx)
+  shows every token + component in both modes.
+- **Invented feature — Watchlist:** device-local (`localStorage`), works
+  signed-out, syncs across tabs, badge in the header. Rationale in
+  [docs/meetings.md](docs/meetings.md). See [src/lib/watchlist.ts](src/lib/watchlist.ts).
+- **New pages:** `/browse` (Movies/TV tabs), `/watchlist`, `/compare`, `/about`,
+  and a branded `not-found`. `/search` rewritten with a Movies/TV toggle and
+  advanced filters (genre, year range, min rating, sort).
+- **TV first-class:** a TV tab in Browse, a TV toggle in Search, an "On TV now"
+  rail on home, and TV-aware detail pages (mono "TV" tag throughout).
+- **Motion (60fps contract):** `transform`/`opacity` only — staggered reveals,
+  skeleton shimmer, a pausable marquee, a route cross-fade, and a shared-element
+  poster morph (View Transitions API). Reduced motion is honored.
+- **Post-MVP features:** ⌘K command palette, recently-viewed rail, `/compare`
+  view, advanced search filters, and per-title dynamic accent color.
+- **Accessibility:** one `<main>` + skip link, labeled forms, visible emerald
+  focus ring, AA contrast in both modes, `next/image` + real `alt` everywhere.
+- **Ship gate:** deployed on Vercel (URL above) and reachable; Lighthouse
+  before/after + the top a11y/perf fixes are recorded in
+  [docs/lighthouse/](docs/lighthouse/).
+
 ## Team
 
-- Rudolf
-- Collins
-- Mani
-- Jonathan
+Across the quarter the four of us built **both halves** of the same product:
+the REST API in Sprints 1–4, then this consumer front-end in Sprints 5–8.
+
+| Member | Front-end lane (Sprints 5–8) |
+| --- | --- |
+| Rudolf | Design system · UI foundation · front-end lead |
+| Collins | Browse · search · TV · watchlist page · compare |
+| Mani | Editorial home · discovery rails · command palette |
+| Jonathan | Title detail · about · 404 · profile |
 
 ## References
 

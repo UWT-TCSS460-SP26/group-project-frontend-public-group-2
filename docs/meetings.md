@@ -255,3 +255,181 @@ Deliberate, intentional choices — not final polish (that's Sprint 8):
 - Consider expanding `<EmptyState>` / `<LoadingState>` / `<ErrorState>`
   with an inline variant so components can reuse them instead of rolling
   their own `<CircularProgress>` / `<Alert>` each time.
+
+---
+
+Sprint 8 (6/1 – 6/7, 2026) — "Ship It".
+
+Team: Rudolf, Collins, Mani, Jonathan.
+
+---
+
+## Sprint 8 Planning — Mon 6/1
+
+**Goal:** finish the quarter with the best-*looking*, best-*feeling* app in the
+class. Look / UI / UX is the top priority. Concretely: a distinctive visual
+identity ("Repertory, evolved" — warm editorial cinema, deep-emerald accent,
+light gallery default + dark cinema), buttery 60fps motion, every required page,
+the invented feature (Watchlist), TV made first-class, accessibility AA in both
+modes, and the required deploy + Lighthouse + docs deliverables.
+
+**Dependency rule (same as Sprint 7, sharpened):** everyone depends only on
+**Rudolf's foundation (M0)** — the theme tokens + shared component prop
+contracts — never on each other. Once the foundation + `/styleguide` reference
+land, the three page lanes run fully in parallel on disjoint files.
+
+**Lane split (Rudolf carries the heaviest load by request):**
+
+- **Rudolf — Lane 0 (foundation + ship + 1 feature).** `theme.ts` rewrite to
+  MUI's `colorSchemes` CSS-vars API (emerald light+dark, full token set, mono
+  font); the app shell (no-flash `InitColorSchemeScript` toggle, `<main>` +
+  skip link landmarks, `<GrainOverlay>`, `template.tsx` cross-fade); `next/image`
+  foundation; the core component vocabulary (`Rail`, evolved `MovieCard`,
+  `StatBadge`, `Marquee`, `Numeral`, skeletons, `Header` redesign with active
+  state + ⌘K slot + watchlist badge, `Footer`); the **Watchlist context +
+  button** (the shared feature primitive); the motion system + View-Transitions
+  plumbing; the dev-only `/styleguide`; deploy + Lighthouse + docs; and the
+  shared-element poster morph feature.
+- **Mani — Lane A (editorial home).** Cinematic featured hero, the NOW SHOWING
+  marquee, the four streamed rails (Popular / Top rated / Most discussed / On
+  TV), `lib/community.ts` self-enrichment, per-rail Suspense + skeletons +
+  empty/error. Features: ⌘K command palette + recently-viewed rail.
+- **Collins — Lane B (discovery + TV + watchlist page).** `/browse` (Movies/TV
+  tabs, pagination), `/search` rewrite (Movies/TV toggle, advanced filters +
+  sort), TV first-class cross-check, the `/watchlist` page. Feature: `/compare`.
+- **Jonathan — Lane C (showpiece pages).** Detail rewrite (cinematic hero,
+  stats row, facts panel, share), About, branded 404, profile polish. Feature:
+  per-title dynamic color.
+
+## Invented feature — Watchlist: rationale (deliverable #3)
+
+**Decision:** the headline invented feature is a device-local **Watchlist**,
+persisted in `localStorage` (one `g2:watchlist` key), exposed app-wide through a
+provider-less `useWatchlist()` hook built on `useSyncExternalStore`.
+
+**Why localStorage and not a partner route:**
+- Group 1's API exposes **no** "save for later" / watchlist endpoint, and this is
+  a *consumer* sprint — we are not allowed to add back-end routes to their API.
+  A server-backed watchlist would mean inventing storage we don't own.
+- A watchlist is the kind of feature users expect to work **before** they sign
+  in. Unlike rate/review (which legitimately require an Auth² bearer token),
+  bookmarking a title to watch later has no reason to be gated. `localStorage`
+  lets it work signed-out, which is the correct product call.
+- It is **instantly demoable and reliable** for the presentation — no cold-start
+  Render latency, no auth dance, no dependency on Group 1 uptime.
+- `useSyncExternalStore` + a `storage` event listener gives us free **cross-tab
+  sync** and a clean **SSR-safe** story (server + first client render see an
+  empty list, then it hydrates) with no provider and no hydration mismatch.
+
+**Touchpoints:** a `<WatchlistButton>` on every `MovieCard` (revealed on
+hover/focus, always shown on touch) and in the detail hero; a live **count badge**
+in the header nav; and the `/watchlist` page (grid + remove + on-brand empty
+state). Toggling from any surface stays in sync everywhere and persists across
+reload + tabs, with a reduced-motion-safe "pop".
+
+---
+
+## Mid-sprint sync — Wed 6/3
+
+- Rudolf's foundation (theme + shell + core components + watchlist + styleguide)
+  merged via PR #70 (`rudolfs-branch`). The three page lanes started in parallel
+  against the published prop contracts.
+- Confirmed the API reality we're building on: `/movies/popular`, `/tv/popular`,
+  `/movies/{id}`, `/tv/{id}`, and `/details/{type}/{id}/enriched` are rich and
+  reliable (backdrop, genres, runtime, vote_average, budget, tagline — but **no
+  cast**, so we never fake credits). The aggregate routes `/ratings/top-rated` &
+  `/ratings/most-reviewed` still come back with `tmdb: null`, so the community
+  rails **self-enrich** the ids through `lib/enrich-titles.ts` (the proven
+  Sprint-7 fallback), capped at ~12 and cached.
+
+## End-of-sprint integration — Sat 6/6 → Sun 6/7
+
+- Page lanes merged into `dev`: Mani's home (PR #71), Collins's browse/search/
+  watchlist (PR #72), Jonathan's detail/about/404/profile (PR #73). Features
+  layered on after the required pages were solid: ⌘K palette + recently-viewed
+  (Mani), advanced filters + `/compare` (Collins), per-title color (Jonathan),
+  shared-element poster morph (Rudolf).
+- Cohesion + correctness audit caught and fixed several real issues before ship:
+  - **Title identity was not media-type aware** — a movie and a TV show that
+    happen to share a TMDB id collided in the watchlist / recently-viewed
+    stores. Fixed by keying everything on `mediaType:id` (`titleIdentityKey`);
+    added a regression test.
+  - **Search filters passed unknowns through** — genre/min-rating filtering ran
+    before the result metadata was resolved, so unfiltered items leaked in. Now
+    the search page enriches results on demand (`lib/search-metadata.ts`) and the
+    filter requires matching metadata; omitted items are surfaced in a warning.
+  - **Compare used mismatched score sources** — one side could show its community
+    score and the other its TMDB score, making the "winner" meaningless.
+    `chooseComparisonScores` now picks **one** source present on *both* sides.
+  - Per-title accent color was made media-type aware and clamped for legibility;
+    sharing + final UI cohesion landed last.
+- **Lighthouse + deploy gate (final review, 6/7):** a production build failure was
+  found that the lane PRs had each passed individually — `Footer` rendered
+  `<Box component={Link}>` from a *Server Component*, which passes a function
+  across the RSC→client boundary and **aborts the static prerender of
+  `/_not-found`**, failing the whole `next build`. Fixed by making `Footer` a
+  client component; dropped an `experimental.cpus: 1` override that would have
+  pinned production builds to one core; self-hosted the three fonts via
+  `next/font/local` so builds don't depend on fetching Google Fonts. Build,
+  lint, and the regression tests are green; the app is deployed and reachable on
+  Vercel. Lighthouse captures + the a11y/perf fix log live in `docs/lighthouse/`.
+
+---
+
+## End-of-quarter retrospective (Sprint 8 + the whole project)
+
+**What went well**
+- **The foundation-first / share-the-contract-not-the-component rule held for a
+  third sprint.** Four people built a brand-new visual identity and six+ pages in
+  a week with almost no cross-lane conflicts because they only ever depended on
+  Rudolf's tokens + prop contracts (and the `/styleguide` made the contract
+  *visible*). The friction we felt in Sprint 6 never came back.
+- **Token-driven theming paid for itself.** Shipping both light and dark from one
+  `colorSchemes` theme with zero hardcoded hex meant dark mode was essentially
+  free, the no-flash toggle "just worked," and the final Lighthouse run scored
+  **100 accessibility / 100 best-practices / 100 SEO** with **CLS 0**.
+- **Honest degradation beat faking data.** Self-enriching the `tmdb: null`
+  aggregate routes, skipping `0` budgets, never inventing cast — the app reads as
+  trustworthy because it only shows what it can actually back up.
+
+**What we'd do differently**
+- **A green PR is not a green build.** Each lane PR passed `next build` on its own,
+  but the Footer RSC bug only bit when *all* of static prerendering ran together
+  at ship time. We should run a full production build on the integration branch
+  as a required check *before* the final hour, not during it.
+- **Capture the Lighthouse baseline on day one.** "Before/after" only tells a
+  story if "before" is recorded before the work starts. We reconstructed the
+  pre-Sprint-8 baseline at the end (see `docs/lighthouse/`), which works but is
+  avoidable — bake the baseline capture into M0 next time.
+- **Decide reduced-motion policy up front.** We flip-flopped on whether the global
+  `prefers-reduced-motion` reset was freezing the signature marquee; the final,
+  correct answer is "honor it" (a11y wins), but we burned time discovering that.
+
+**Surprises — consuming vs. providing an API**
+- Providing an API (Sprints 1–4) made us think in terms of *contracts and
+  correctness*; consuming one (Sprints 5–8) made us think in terms of *defense*.
+  The single biggest lesson: **`HTTP 200` does not mean success.** Group 1's
+  enriched route returns 200 with a TMDB error envelope in the body, so every
+  consumer of it has to inspect the payload, not the status. We would never have
+  predicted how much consumer code is just guarding against shapes the provider
+  *technically* documented but didn't guarantee (`tmdb: null`, `0` for "unknown",
+  `first_air_date` vs `release_date`, movie/TV id overlap).
+- Being on *both* sides taught us empathy in both directions: as a provider we now
+  understand why consumers file such pedantic bug reports, and as a consumer we
+  understand why providers want structured reports through the bug tracker, not
+  Discord one-liners.
+
+**What we learned about working with AI agents**
+- Agents are fastest when handed a **tight contract and a single lane** — the same
+  thing that made our *humans* productive. "Build this component to these props,
+  in this token system, touching only these files" produced clean, mergeable
+  work; vague "make it nicer" prompts produced churn.
+- Agents are excellent at the **breadth pass a tired team skips at 11pm**:
+  re-reading every call site for consistency, catching the media-type id-collision
+  bug, noticing the one Server Component that breaks the static build. They are
+  *not* a substitute for actually running `next build` / `lint` / tests — they'll
+  confidently describe code as "done" that doesn't compile, so verification stays
+  on us.
+- Most valuable habit: make the agent **prove** completion (build output, test
+  pass, a real Lighthouse number) rather than accept "looks complete." Every
+  claim in this sprint that mattered was the one we could check.

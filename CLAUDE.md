@@ -113,7 +113,7 @@ After a successful write in a client component, call `useRouter().refresh()` to 
 
 All animation is **`transform` + `opacity` only** — never `width`/`height`/`top`/`left`/`margin` (those trigger layout/jank). Drive any JS animation with `requestAnimationFrame`; use `will-change` only while animating, then drop it. Target ~16.6ms/frame; if a transition stutters on a throttled CPU, ship it static.
 
-Keyframes live in **`globals.css`** (e.g. `repertory-marquee`, `reveal-up`) — defining them globally rather than inline in `sx` avoids emotion mis-scoping the animation name (that bug silently froze the marquee). Note: the global `prefers-reduced-motion: reduce` blanket freeze was **removed** — it was freezing the signature marquee + stagger — so motion runs for everyone, kept gentle and pausable (the marquee pauses on hover). If strict reduced-motion respect is wanted later, add an in-app toggle, not the OS-based blanket reset.
+Keyframes live in **`globals.css`** (e.g. `repertory-marquee`, `reveal-up`) — defining them globally rather than inline in `sx` avoids emotion mis-scoping the animation name (that bug silently froze the marquee). **Reduced motion is honored** (a11y requirement): `globals.css` carries a `prefers-reduced-motion: reduce` block that neutralizes animations/transitions, freezes the marquee track, and disables the poster view-transition. Keyframes themselves stay gentle and pausable (the marquee pauses on hover/focus) for everyone else.
 
 Building blocks: `<Reveal index={i}>` (staggered grid/rail entrance), `CardSkeleton`/`RailSkeleton` (transform shimmer), the `Marquee` ticker, the `app/template.tsx` route cross-fade, and `viewTransitionName()` (`@/lib/view-transition`) for the shared-element poster morph (RU-11; needs `experimental.viewTransition`, already set in `next.config.ts`).
 
@@ -153,7 +153,7 @@ import {
 } from "@/components";
 ```
 
-`<Header />` and `<Footer />` are rendered **once** in `src/app/layout.tsx` — don't add them inside pages. The full component gallery (both modes) is the dev-only **`/styleguide`** page. Note: `<Button component={Link}>` can't be used in a Server Component (it throws) — use `<ButtonLink href=…>` instead.
+`<Header />` and `<Footer />` are rendered **once** in `src/app/layout.tsx` — don't add them inside pages. The full component gallery (both modes) is the dev-only **`/styleguide`** page. Note: passing `component={Link}` (a function) to any MUI client component (`Button`, `Box`, `MenuItem`, …) from a **Server Component** throws "Functions cannot be passed directly to Client Components" and **aborts the static prerender of the whole production build** (it surfaced as a `/_not-found` export error). Either use `<ButtonLink href=…>` (a thin `"use client"` wrapper) or make the host component a client component (`"use client"`).
 
 Every page should be wrapped in `<PageContainer>` (handles max-width and responsive padding).
 
