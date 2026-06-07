@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchGroupOneApi } from "@/lib/api";
+import { titleHref } from "@/lib/title-route";
 import type { MediaType, Movie, SearchResults } from "@/types/media";
 
 const RESULT_LIMIT = 6;
@@ -34,7 +35,7 @@ function yearFrom(value?: string) {
 function movieResult(movie: Movie): CommandSearchResult {
   return {
     id: `movie-${movie.id}`,
-    href: `/title/${movie.id}`,
+    href: titleHref("movie", movie.id),
     title: movie.title,
     mediaType: "movie",
     year: yearFrom(movie.release_date),
@@ -44,7 +45,7 @@ function movieResult(movie: Movie): CommandSearchResult {
 function tvResult(show: TvTitle): CommandSearchResult {
   return {
     id: `tv-${show.id}`,
-    href: `/title/${show.id}`,
+    href: titleHref("tv", show.id),
     title: show.title ?? show.name ?? "Untitled",
     mediaType: "tv",
     year: yearFrom(show.first_air_date ?? show.release_date),

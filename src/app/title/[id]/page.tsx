@@ -22,6 +22,8 @@ import { ReviewsProvider } from "@/components/reviews-context";
 import { auth } from "@/auth";
 import { fetchGroupOneApi } from "@/lib/api";
 import { TITLE_ACCENT } from "@/lib/title-color";
+import { parseMediaType } from "@/lib/title-route";
+import type { MediaType } from "@/types/media";
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p";
 
@@ -29,6 +31,7 @@ type DetailRouteParams = Promise<{ id: string }>;
 
 interface TitleDetailPageProps {
   params: DetailRouteParams;
+  searchParams: Promise<{ type?: string }>;
 }
 
 type UnknownRecord = Record<string, unknown>;
@@ -145,10 +148,25 @@ async function fetchDetail(id: string): Promise<DetailResult | null> {
   return null;
 }
 
+async function fetchTypedDetail(
+  id: string,
+  mediaType: MediaType | undefined,
+): Promise<DetailResult | null> {
+  if (!mediaType) return fetchDetail(id);
+
+  const attempt = await tryFetchDetail(mediaType, id);
+  if (attempt.payload) return { mediaType, payload: attempt.payload };
+  if (attempt.error) throw attempt.error;
+  return null;
+}
+
 export default async function TitleDetailPage({
   params,
+  searchParams,
 }: TitleDetailPageProps) {
   const { id } = await params;
+  const { type } = await searchParams;
+  const requestedMediaType = parseMediaType(type);
 
   if (!id) {
     return (
@@ -160,7 +178,7 @@ export default async function TitleDetailPage({
   let detailResult: DetailResult | null = null;
   let fetchError: unknown = null;
   try {
-    detailResult = await fetchDetail(id);
+    detailResult = await fetchTypedDetail(id, requestedMediaType);
   } catch (error) {
     fetchError = error;
   }
@@ -173,7 +191,9 @@ export default async function TitleDetailPage({
           detail={
             fetchError instanceof Error
               ? fetchError.message
-              : `No movie or TV show matched id ${id}.`
+              : requestedMediaType
+                ? `No ${requestedMediaType === "tv" ? "TV show" : "movie"} matched id ${id}.`
+                : `No movie or TV show matched id ${id}.`
           }
         />
       </PageContainer>

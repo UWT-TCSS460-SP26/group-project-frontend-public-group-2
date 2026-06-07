@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { titleIdentityKey } from "@/lib/title-route";
 import type { MediaType } from "@/types/media";
 
 export interface WatchlistItem {
@@ -25,7 +26,21 @@ function readRaw(): string {
 function parse(raw: string): WatchlistItem[] {
   try {
     const value = JSON.parse(raw);
-    return Array.isArray(value) ? (value as WatchlistItem[]) : [];
+    if (!Array.isArray(value)) return [];
+
+    const items = value.filter(
+      (item): item is WatchlistItem =>
+        item !== null &&
+        typeof item === "object" &&
+        typeof item.id === "number" &&
+        (item.mediaType === "movie" || item.mediaType === "tv") &&
+        typeof item.title === "string" &&
+        (typeof item.posterPath === "string" || item.posterPath === null),
+    );
+    const unique = new Map(
+      items.map((item) => [titleIdentityKey(item), item] as const),
+    );
+    return Array.from(unique.values());
   } catch {
     return [];
   }
@@ -63,18 +78,28 @@ export function useWatchlist() {
   const raw = useSyncExternalStore(subscribe, readRaw, getServerSnapshot);
   const items = useMemo(() => parse(raw), [raw]);
 
-  const has = useCallback((id: number) => items.some((i) => i.id === id), [items]);
+  const has = useCallback(
+    (mediaType: MediaType, id: number) =>
+      items.some(
+        (item) => titleIdentityKey(item) === titleIdentityKey({ mediaType, id }),
+      ),
+    [items],
+  );
 
   const toggle = useCallback((item: WatchlistItem) => {
     const current = parse(readRaw());
-    const next = current.some((i) => i.id === item.id)
-      ? current.filter((i) => i.id !== item.id)
+    const key = titleIdentityKey(item);
+    const next = current.some((existing) => titleIdentityKey(existing) === key)
+      ? current.filter((existing) => titleIdentityKey(existing) !== key)
       : [item, ...current];
     writeItems(next);
   }, []);
 
-  const remove = useCallback((id: number) => {
-    writeItems(parse(readRaw()).filter((i) => i.id !== id));
+  const remove = useCallback((mediaType: MediaType, id: number) => {
+    const key = titleIdentityKey({ mediaType, id });
+    writeItems(
+      parse(readRaw()).filter((item) => titleIdentityKey(item) !== key),
+    );
   }, []);
 
   const clear = useCallback(() => writeItems([]), []);

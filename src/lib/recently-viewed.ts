@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { titleIdentityKey } from "@/lib/title-route";
 import type { MediaType } from "@/types/media";
 
 export interface RecentlyViewedItem {
@@ -16,7 +17,7 @@ const CHANGE_EVENT = "g2:recently-viewed-change";
 const LIMIT = 12;
 
 function itemKey(item: Pick<RecentlyViewedItem, "id" | "mediaType">) {
-  return `${item.mediaType}:${item.id}`;
+  return titleIdentityKey(item);
 }
 
 function readRaw(): string {

@@ -19,6 +19,7 @@ import { StatBadge } from "@/components/StatBadge";
 import { deleteRating, updateRating } from "@/lib/actions/ratings";
 import { deleteReview, updateReview } from "@/lib/actions/reviews";
 import { titleKey, type TitleSummaryByKey } from "@/lib/title-summary";
+import { titleHref } from "@/lib/title-route";
 import type { EnrichedRatedItem, MediaType, Review } from "@/types/media";
 import { TMDB_IMG_BASE } from "@/types/media";
 
@@ -280,12 +281,16 @@ function RatingRow({
           alignItems: "center",
         }}
       >
-        <RowPoster href={`/title/${item.tmdbId}`} imageUrl={imageUrl} title={title} />
+        <RowPoster
+          href={titleHref(item.mediaType, item.tmdbId)}
+          imageUrl={imageUrl}
+          title={title}
+        />
 
         <Box sx={{ minWidth: 0 }}>
           <Typography
             component={Link}
-            href={`/title/${item.tmdbId}`}
+            href={titleHref(item.mediaType, item.tmdbId)}
             sx={{
               color: "inherit",
               textDecoration: "none",
@@ -513,7 +518,7 @@ function ReviewRow({
           }}
         >
           <RowPoster
-            href={`/title/${review.tmdbId}`}
+            href={titleHref(review.mediaType, review.tmdbId)}
             imageUrl={imageUrl}
             title={displayTitle}
           />
@@ -521,7 +526,7 @@ function ReviewRow({
           <Box sx={{ minWidth: 0 }}>
             <Typography
               component={Link}
-              href={`/title/${review.tmdbId}`}
+              href={titleHref(review.mediaType, review.tmdbId)}
               sx={{
                 color: "inherit",
                 textDecoration: "none",

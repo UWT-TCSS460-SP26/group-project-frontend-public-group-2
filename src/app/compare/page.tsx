@@ -11,6 +11,7 @@ import {
   StatBadge,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
+import { titleHref } from "@/lib/title-route";
 import { TMDB_IMG_BASE } from "@/types/media";
 import type { MediaType } from "@/types/media";
 import { TitlePicker } from "./TitlePicker";
@@ -276,7 +277,7 @@ function TitlePanel({
       {/* Actions */}
       <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
         <ButtonLink
-          href={`/title/${data.id}`}
+          href={titleHref(data.mediaType, data.id)}
           variant="contained"
           color="primary"
           size="small"

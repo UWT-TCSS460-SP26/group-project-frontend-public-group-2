@@ -16,6 +16,7 @@ import {
   StatBadge,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
+import { titleHref } from "@/lib/title-route";
 import {
   getMostReviewedCommunityTitles,
   getTopRatedCommunityTitles,
@@ -331,7 +332,7 @@ async function FeaturedHero() {
         meta={featuredMeta}
         blurb={featured.overview}
         backgroundImageUrl={featuredBackdrop}
-        ctaHref={`/title/${featured.id}`}
+        ctaHref={titleHref("movie", featured.id)}
         ctaLabel="View"
       />
 

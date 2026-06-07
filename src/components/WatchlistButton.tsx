@@ -18,7 +18,7 @@ interface WatchlistButtonProps {
  */
 export function WatchlistButton({ item, size = "small" }: WatchlistButtonProps) {
   const { has, toggle } = useWatchlist();
-  const saved = has(item.id);
+  const saved = has(item.mediaType, item.id);
   const label = saved ? "Remove from watchlist" : "Add to watchlist";
   const iconFontSize = size === "small" ? "small" : "medium";
 

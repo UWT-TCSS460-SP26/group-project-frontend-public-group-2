@@ -5,12 +5,12 @@ import Typography from "@mui/material/Typography";
 import { MetaText } from "./MetaText";
 import { WatchlistButton } from "./WatchlistButton";
 import styles from "./MovieCard.module.css";
+import { titleHref } from "@/lib/title-route";
 import type { Movie, MediaType } from "@/types/media";
 import { TMDB_IMG_BASE } from "@/types/media";
 
 interface MovieCardProps {
   movie: Movie;
-  hrefPrefix?: string;
   /** Extra mono meta after the year, e.g. "TV" or a runtime. */
   metaSuffix?: string;
   /** Used for the watchlist entry; defaults to "movie". */
@@ -20,12 +20,11 @@ interface MovieCardProps {
 
 export function MovieCard({
   movie,
-  hrefPrefix = "/title",
   metaSuffix,
   mediaType = "movie",
   badge,
 }: MovieCardProps) {
-  const href = `${hrefPrefix}/${movie.id}`;
+  const href = titleHref(mediaType, movie.id);
 
   // poster_path is a relative TMDB path like "/abc123.jpg".
   // Guard: if Group 1 ever sends a pre-resolved full URL, pass it through.
