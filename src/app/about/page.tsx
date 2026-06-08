@@ -5,14 +5,35 @@ import { MetaText, PageContainer, PageTitle, Reveal, SectionHeading } from "@/co
 
 export const metadata: Metadata = { title: "About — Group 2" };
 
-// The four of us across the whole quarter: we built Group 1's-shaped REST API in
+// The four of us across the whole quarter: we built a Group-1-shaped REST API in
 // Sprints 1–4, then turned around and built this consumer front-end in Sprints 5–8.
-// Each member's front-end lane is what they owned in the second half.
+// These are the high-level areas each of us owned on the front-end — the kind of
+// work, not a page-by-page list.
 const team = [
-  { name: "Rudolf", lane: "Design system · UI foundation · front-end lead" },
-  { name: "Collins", lane: "Browse · search · watchlist" },
-  { name: "Mani", lane: "Home · discovery rails" },
-  { name: "Jonathan", lane: "Title detail · profile · about" },
+  {
+    name: "Rudolf",
+    role: "Front-end lead",
+    focus:
+      "Stood up the architecture and app shell, the design system and theme, the motion and accessibility contract, authentication, and the shared API/data layer the rest of the app is built on.",
+  },
+  {
+    name: "Collins",
+    role: "Discovery & search",
+    focus:
+      "Built how you find and weigh titles — browsing the catalog, search with genre, year, and rating filters plus sorting, rating titles, and comparing two side by side.",
+  },
+  {
+    name: "Mani",
+    role: "Home & live data",
+    focus:
+      "Shaped the home experience — the cinematic hero, editorial rails, now-showing marquee, command palette, and the live community data wired behind them.",
+  },
+  {
+    name: "Jonathan",
+    role: "Detail & reviews",
+    focus:
+      "Owned the title pages and the account side — the cinematic detail layout, writing and managing reviews, the profile, and the supporting pages.",
+  },
 ];
 
 const phases = [
@@ -140,9 +161,27 @@ export default function AboutPage() {
                   >
                     {member.name}
                   </Typography>
-                  <MetaText sx={{ display: "block", mt: 0.75, textTransform: "uppercase", color: "text.secondary" }}>
-                    {member.lane}
+                  <MetaText
+                    sx={{
+                      display: "block",
+                      mt: 0.75,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.12em",
+                      color: "primary.dark",
+                    }}
+                  >
+                    {member.role}
                   </MetaText>
+                  <Typography
+                    sx={{
+                      mt: 1.5,
+                      color: "text.secondary",
+                      lineHeight: 1.65,
+                      fontSize: "0.92rem",
+                    }}
+                  >
+                    {member.focus}
+                  </Typography>
                 </Box>
               </Box>
             </Reveal>
