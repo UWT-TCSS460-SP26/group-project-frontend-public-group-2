@@ -68,7 +68,10 @@ type LoadResult<T> =
 
 type UnknownRecord = Record<string, unknown>;
 
-const TMDB_STILL_BASE = "https://image.tmdb.org/t/p/w1280";
+// Full-res backdrop source for the full-bleed hero. next/image downscales it to
+// the actual viewport, so a large source reads crisp on wide screens instead of the
+// soft, upscaled look w1280 gave above 1280px.
+const TMDB_STILL_BASE = "https://image.tmdb.org/t/p/original";
 
 function asRecord(value: unknown): UnknownRecord | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -398,6 +401,8 @@ async function PopularRail() {
     href: titleHref("movie", movie.id),
     mediaType: "movie" as const,
     year: movie.release_date?.slice(0, 4) || undefined,
+    rating: typeof movie.rating === "number" ? movie.rating : undefined,
+    overview: movie.overview || undefined,
   }));
 
   return (
