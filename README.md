@@ -139,7 +139,9 @@ the invented feature, TV made first-class, accessibility, and the ship gate.
   focus ring, AA contrast in both modes, `next/image` + real `alt` everywhere.
 - **Ship gate:** deployed on Vercel (URL above) and reachable; Lighthouse
   before/after + the top a11y/perf fixes are recorded in
-  [docs/lighthouse/](docs/lighthouse/).
+  [docs/lighthouse/](docs/lighthouse/). The full deliverable-by-deliverable
+  verification is in
+  [docs/sprint-8-completion.md](docs/sprint-8-completion.md).
 
 ## Team
 
