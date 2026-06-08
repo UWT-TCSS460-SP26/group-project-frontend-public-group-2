@@ -7,7 +7,7 @@ import { enrichTitles } from "@/lib/enrich-titles";
 import { ProfileHeader } from "./ProfileHeader";
 import { ProfileRows } from "./ProfileRows";
 
-export const metadata: Metadata = { title: "Profile - Group 2" };
+export const metadata: Metadata = { title: "Profile" };
 
 // Group 1 caps GET /reviews/me at limit=50 per the OpenAPI spec.
 const REVIEW_LIMIT = 50;

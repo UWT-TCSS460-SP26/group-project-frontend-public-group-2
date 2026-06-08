@@ -4,6 +4,7 @@ import { useState } from "react";
 import Button from "@mui/material/Button";
 import Snackbar from "@mui/material/Snackbar";
 import ShareRoundedIcon from "@mui/icons-material/ShareRounded";
+import { SITE_NAME } from "@/lib/brand";
 
 interface ShareButtonProps {
   title: string;
@@ -17,7 +18,7 @@ export function ShareButton({ title }: ShareButtonProps) {
 
     try {
       if (navigator.share) {
-        await navigator.share({ title, text: `View ${title} on Repertory`, url });
+        await navigator.share({ title, text: `View ${title} on ${SITE_NAME}`, url });
         setMessage("Shared.");
         return;
       }

@@ -3,7 +3,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { ButtonLink, MetaText, Numeral, PageContainer, Reveal } from "@/components";
 
-export const metadata: Metadata = { title: "Page not found — Group 2" };
+export const metadata: Metadata = { title: "Page not found" };
 
 const links = [
   { label: "Home", href: "/", variant: "contained" as const },

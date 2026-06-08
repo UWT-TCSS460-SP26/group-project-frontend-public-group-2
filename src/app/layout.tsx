@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Footer, GrainOverlay, Header } from "@/components";
+import { SITE_DEFAULT_TITLE, SITE_DESCRIPTION, SITE_NAME } from "@/lib/brand";
 
 const inter = localFont({
   src: "./fonts/inter-latin.woff2",
@@ -41,9 +42,12 @@ const mono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Group 2 · Movies & TV",
-  description:
-    "Browse, search, and keep a watchlist of the films and shows worth your time.",
+  title: {
+    default: SITE_DEFAULT_TITLE,
+    template: `%s — ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
 };
 
 export default function RootLayout({
@@ -59,15 +63,29 @@ export default function RootLayout({
     >
       <body>
         {/* Sets the color-scheme class on <html> before paint → no theme flash. */}
-        <InitColorSchemeScript attribute="class" defaultMode="light" />
+        <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <Providers>
           <a href="#main-content" className="skip-link">
             Skip to content
           </a>
-          <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              minWidth: 0,
+              minHeight: "100dvh",
+              overflowX: "clip",
+            }}
+          >
             <Header />
             <GrainOverlay />
-            <Box component="main" id="main-content" tabIndex={-1} sx={{ flex: 1 }}>
+            <Box
+              component="main"
+              id="main-content"
+              tabIndex={-1}
+              sx={{ flex: 1, width: "100%", minWidth: 0 }}
+            >
               {children}
             </Box>
             <Footer />

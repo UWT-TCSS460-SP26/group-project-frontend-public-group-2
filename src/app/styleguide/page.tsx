@@ -23,7 +23,7 @@ import {
 } from "@/components";
 import type { Movie } from "@/types/media";
 
-export const metadata: Metadata = { title: "Styleguide — Group 2" };
+export const metadata: Metadata = { title: "Styleguide" };
 
 // Sample data for the component demos.
 const SAMPLE: Movie[] = [

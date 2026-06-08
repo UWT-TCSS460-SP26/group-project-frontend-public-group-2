@@ -55,11 +55,15 @@ function fanTransform(offset: number): string {
   return `translate(-50%, -50%) translateX(${x}px) translateZ(${z}px) rotateY(${rotate}deg) scale(${scale})`;
 }
 
-// Mobile = a vertical "stacked cards" pose: the active card sits front and full,
-// the next two peek up behind it.
-function stackTransform(offset: number): string {
-  const shown = Math.max(offset, 0);
-  return `translate(-50%, 0) translateY(${-shown * 18}px) scale(${1 - shown * 0.05})`;
+// Mobile = a side-peek carousel pose so the horizontal swipe affordance is visible
+// before the user interacts. The active card sits centred; its neighbours peek in
+// from the sides and drop back slightly.
+function mobileTransform(offset: number): string {
+  const abs = Math.abs(offset);
+  const x = offset * 54;
+  const y = abs * 10;
+  const scale = 1 - abs * 0.08;
+  return `translate(-50%, 0) translateX(${x}px) translateY(${y}px) scale(${scale})`;
 }
 
 const navBtnSx = {
@@ -94,13 +98,16 @@ const CORNERS = [
  * any poster lifts it with a sheen sweep. Below the stage, the active film's
  * metadata cross-fades in — oversized serif title + a strict mono catalog line.
  *
- * Mobile drops the fan for a tap-friendly vertical stack. Transform/opacity only
- * (GPU, 60fps); reduced-motion users get a static, legible layout.
+ * Mobile keeps the same one-at-a-time focus, but shifts to a side-peek carousel
+ * so the horizontal swipe gesture reads visually. Transform/opacity only (GPU,
+ * 60fps); reduced-motion users get a static, legible layout.
  */
 export function PosterDeck({ items }: { items: DeckItem[] }) {
   const deck = items.slice(0, MAX_CARDS);
   const n = deck.length;
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressClickRef = useRef(false);
   // Start near the middle so the fan opens symmetrically.
   const [active, setActive] = useState(() => Math.min(WINDOW, Math.floor(Math.max(n - 1, 0) / 2)));
 
@@ -124,6 +131,34 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
         event.preventDefault();
         go(1);
       }
+    },
+    [go],
+  );
+
+  const onTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  }, []);
+
+  const onTouchEnd = useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      const start = touchStartRef.current;
+      const touch = event.changedTouches[0];
+      touchStartRef.current = null;
+      if (!start || !touch) return;
+
+      const deltaX = touch.clientX - start.x;
+      const deltaY = touch.clientY - start.y;
+      if (Math.abs(deltaX) < 44 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) {
+        return;
+      }
+
+      suppressClickRef.current = true;
+      go(deltaX < 0 ? 1 : -1);
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 400);
     },
     [go],
   );
@@ -152,15 +187,21 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
       <Box
         ref={stageRef}
         role="group"
-        aria-label="Popular this week — poster deck"
+        aria-label="Popular this week — poster deck. Swipe left or right on mobile."
         tabIndex={0}
         onKeyDown={onKeyDown}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
         sx={{
           position: "relative",
           overflow: "hidden",
-          height: { xs: 460, sm: 500, md: 540 },
+          width: "100%",
+          minWidth: 0,
+          height: { xs: "min(132vw, 460px)", sm: 500, md: 540 },
           perspective: { md: "1200px" },
           perspectiveOrigin: "50% 44%",
+          touchAction: { xs: "pan-y", md: "auto" },
+          overscrollBehaviorX: "contain",
           outline: "none",
           // Soft emerald-tinted halo behind the centre so the active poster lifts
           // off the bone surface — premium depth without a hard shadow on the paper.
@@ -193,7 +234,7 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
           const src = posterUrl(item.posterPath);
           const isActive = offset === 0;
           const fanShown = abs <= WINDOW;
-          const stackShown = offset >= 0 && offset <= WINDOW;
+          const mobileShown = abs <= WINDOW;
           const reachable = fanShown;
 
           return (
@@ -205,6 +246,10 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
               aria-hidden={!reachable}
               tabIndex={reachable ? undefined : -1}
               onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
+                if (suppressClickRef.current) {
+                  event.preventDefault();
+                  return;
+                }
                 if (!isActive) {
                   event.preventDefault();
                   setActive(i);
@@ -222,16 +267,16 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
                 top: { xs: "auto", md: "50%" },
                 bottom: { xs: 24, md: "auto" },
                 display: "block",
-                width: { xs: 250, sm: 268, md: 284 },
+                width: { xs: "min(244px, calc(100% - 88px))", sm: 268, md: 284 },
                 textDecoration: "none",
-                transformOrigin: "center center",
-                transform: { xs: stackTransform(offset), md: fanTransform(offset) },
+                transformOrigin: { xs: "center top", md: "center center" },
+                transform: { xs: mobileTransform(offset), md: fanTransform(offset) },
                 opacity: {
-                  xs: offset === 0 ? 1 : offset === 1 ? 0.5 : offset === 2 ? 0.26 : 0,
+                  xs: abs === 0 ? 1 : abs === 1 ? 0.42 : abs === 2 ? 0.16 : 0,
                   md: abs === 0 ? 1 : abs === 1 ? 0.94 : abs === 2 ? 0.74 : 0,
                 },
-                zIndex: { xs: 30 - Math.max(offset, 0), md: 30 - abs },
-                pointerEvents: { xs: stackShown ? "auto" : "none", md: fanShown ? "auto" : "none" },
+                zIndex: { xs: 30 - abs, md: 30 - abs },
+                pointerEvents: { xs: mobileShown ? "auto" : "none", md: fanShown ? "auto" : "none" },
                 transition:
                   "transform 600ms cubic-bezier(0.4, 0, 0.2, 1), opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)",
                 cursor: "pointer",
@@ -276,6 +321,8 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
                     fill
                     quality={85}
                     sizes="(max-width: 900px) 268px, 284px"
+                    loading="eager"
+                    priority={abs <= 1}
                     style={{ objectFit: "cover" }}
                   />
                 ) : (
@@ -322,7 +369,7 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
           borderTop: "1px solid",
           borderColor: "divider",
           bgcolor: "background.default",
-          px: { xs: 2.5, md: 4 },
+          px: { xs: 2, sm: 2.5, md: 4 },
           py: { xs: 2.5, md: 3.25 },
           display: "flex",
           alignItems: { xs: "flex-start", sm: "flex-end" },
@@ -339,8 +386,8 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
             "@media (prefers-reduced-motion: reduce)": { animation: "none" },
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, mb: 1 }}>
-            <MetaText sx={{ color: "primary.dark", textTransform: "uppercase", letterSpacing: "0.18em" }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.25, mb: 1 }}>
+            <MetaText sx={{ color: "primary.dark", textTransform: "uppercase", letterSpacing: { xs: "0.1em", sm: "0.18em" }, overflowWrap: "anywhere" }}>
               {catalog}
             </MetaText>
             {typeof current.rating === "number" && current.rating > 0 && (
@@ -354,16 +401,17 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
             component={Link}
             href={current.href}
             sx={{
-              display: "block",
               fontFamily: "var(--font-fraunces), Georgia, serif",
-              fontSize: { xs: "1.95rem", md: "2.7rem" },
+              fontSize: { xs: "clamp(1.55rem, 8vw, 1.95rem)", md: "2.7rem" },
               lineHeight: 1.03,
               letterSpacing: "-0.02em",
               color: "text.primary",
               textDecoration: "none",
+              display: "-webkit-box",
+              WebkitLineClamp: { xs: 2, sm: 1 },
+              WebkitBoxOrient: "vertical",
               overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              overflowWrap: "anywhere",
               "&:hover": { color: "primary.dark" },
             }}
           >
@@ -386,9 +434,59 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
               {current.overview}
             </Typography>
           )}
+          <Box
+            aria-hidden
+            sx={{
+              display: { xs: "flex", sm: "none" },
+              alignItems: "center",
+              gap: 1,
+              mt: 1.5,
+              width: "100%",
+            }}
+          >
+            <ChevronLeftIcon sx={{ fontSize: 16, color: "text.secondary", opacity: 0.72 }} />
+            <Box
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 0.75,
+              }}
+            >
+              {deck.map((item, i) => {
+                const isCurrent = i === active;
+                return (
+                  <Box
+                    key={`pager-${item.mediaType}-${item.id}`}
+                    sx={{
+                      width: isCurrent ? 18 : 5,
+                      height: 5,
+                      borderRadius: 999,
+                      bgcolor: isCurrent ? "primary.main" : "divider",
+                      transition:
+                        "width 260ms cubic-bezier(0.4, 0, 0.2, 1), background-color 260ms ease, opacity 260ms ease",
+                      opacity: isCurrent ? 1 : 0.9,
+                    }}
+                  />
+                );
+              })}
+            </Box>
+            <ChevronRightIcon sx={{ fontSize: 16, color: "text.secondary", opacity: 0.72 }} />
+          </Box>
         </Box>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+        <Box
+          sx={{
+            display: "flex",
+            width: { xs: "100%", sm: "auto" },
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+            flexShrink: 0,
+          }}
+        >
           <ButtonLink
             href={current.href}
             variant="text"

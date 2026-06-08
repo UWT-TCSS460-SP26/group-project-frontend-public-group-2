@@ -130,10 +130,16 @@ async function fetchEnrichedMovie(id: number): Promise<UnknownRecord | null> {
 
 function railTitle(index: number, title: string, tag?: string) {
   return (
-    <Box sx={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-      <Numeral value={index} sx={{ fontSize: { xs: "2rem", md: "2.5rem" } }} />
+    <Box sx={{ display: "flex", alignItems: "baseline", gap: { xs: 1.25, sm: 2 }, minWidth: 0 }}>
+      <Numeral value={index} sx={{ flexShrink: 0, fontSize: { xs: "1.75rem", sm: "2rem", md: "2.5rem" } }} />
       <Box sx={{ minWidth: 0 }}>
-        <Typography variant="h2" sx={{ fontSize: { xs: "1.5rem", md: "1.85rem" } }}>
+        <Typography
+          variant="h2"
+          sx={{
+            fontSize: { xs: "clamp(1.25rem, 6vw, 1.5rem)", md: "1.85rem" },
+            overflowWrap: "anywhere",
+          }}
+        >
           {title}
         </Typography>
         {tag && (
