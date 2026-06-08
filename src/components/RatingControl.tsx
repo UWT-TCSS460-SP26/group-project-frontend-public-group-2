@@ -18,18 +18,11 @@ import {
   updateRating,
 } from "@/lib/actions/ratings";
 import type { MediaType } from "@/types/media";
-import {
-  TITLE_ACCENT,
-  titleAccentButtonSx,
-  titleAccentRatingSx,
-} from "@/lib/title-color";
 
 export interface RatingControlProps {
   /** TMDB id of the title being rated (the detail route's [id]). */
   tmdbId: string;
   mediaType: MediaType;
-  /** When true, stars + submit CTA read `--title-accent` (detail page only). */
-  useTitleAccent?: boolean;
 }
 
 /**
@@ -40,11 +33,7 @@ export interface RatingControlProps {
  * After a successful mutation calls router.refresh() so the server-rendered
  * aggregate on the detail page re-fetches without a manual reload.
  */
-export function RatingControl({
-  tmdbId,
-  mediaType,
-  useTitleAccent = false,
-}: RatingControlProps) {
+export function RatingControl({ tmdbId, mediaType }: RatingControlProps) {
   const { status } = useSession();
   const router = useRouter();
 
@@ -197,12 +186,8 @@ export function RatingControl({
               // `action.disabled` (~30% white) all but vanishes on the dark panel,
               // so the control looked empty/inert on mobile.
               "& .MuiRating-iconEmpty": { color: "text.secondary" },
-              ...(useTitleAccent
-                ? titleAccentRatingSx
-                : {
-                    "& .MuiRating-iconFilled": { color: "primary.main" },
-                    "& .MuiRating-iconHover": { color: "primary.light" },
-                  }),
+              "& .MuiRating-iconFilled": { color: "primary.main" },
+              "& .MuiRating-iconHover": { color: "primary.light" },
             }}
           />
           {starValue !== null && (
@@ -213,12 +198,7 @@ export function RatingControl({
         </Box>
 
         {savedScore !== null && !errorMessage && (
-          <Typography
-            sx={{
-              color: useTitleAccent ? TITLE_ACCENT : "primary.main",
-              fontSize: "0.85rem",
-            }}
-          >
+          <Typography sx={{ color: "primary.main", fontSize: "0.85rem" }}>
             Saved — {savedScore} / 10
           </Typography>
         )}
@@ -236,7 +216,6 @@ export function RatingControl({
             size="small"
             onClick={handleSubmit}
             disabled={busy || starValue === null}
-            sx={useTitleAccent ? titleAccentButtonSx : undefined}
             startIcon={
               isSubmitting ? (
                 <CircularProgress size={14} color="inherit" />

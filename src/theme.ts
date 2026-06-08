@@ -10,8 +10,7 @@ import { createTheme } from "@mui/material/styles";
  * so a single class on <html> swaps the whole app with no flash. The shell wiring
  * (InitColorSchemeScript, ThemeProvider defaultMode, the toggle) lands in RU-2.
  *
- * Brand accent: deep emerald (`#1E7A5A` light / mint `#3FB488` dark). Title pages
- * additionally adopt each poster's own color at runtime (per-title accent, RU/JO).
+ * Brand accent: deep emerald (`#1E7A5A` light / mint `#3FB488` dark).
  *
  * Conventions (see CLAUDE.md): no hardcoded hex in components — reference these
  * tokens via `sx`. Buttons: contained = primary, outlined = secondary, text = tertiary.

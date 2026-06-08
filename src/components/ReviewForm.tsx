@@ -14,7 +14,6 @@ import {
   updateReview,
 } from "@/lib/actions/reviews";
 import { findMyReviewForTitle } from "@/lib/find-my-review";
-import { titleAccentButtonSx, titleAccentTextFieldSx } from "@/lib/title-color";
 import type { MediaType, Review } from "@/types/media";
 import { SignInPrompt } from "./SignInPrompt";
 import { useReviewsContextOptional } from "./reviews-context";
@@ -23,8 +22,6 @@ export interface ReviewFormProps {
   /** TMDB id of the title being reviewed (the detail route's [id]). */
   tmdbId: string;
   mediaType: MediaType;
-  /** When true, the field focus + submit CTA read `--title-accent` (detail page). */
-  useTitleAccent?: boolean;
 }
 
 type FormMode = "create" | "edit";
@@ -64,11 +61,7 @@ function validateBody(body: string): string | undefined {
  * After a successful create/update, calls `router.refresh()` so the detail page
  * refetches the enriched review list.
  */
-export function ReviewForm({
-  tmdbId,
-  mediaType,
-  useTitleAccent = false,
-}: ReviewFormProps) {
+export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
   const router = useRouter();
   const { status: sessionStatus } = useSession();
   const reviewsContext = useReviewsContextOptional();
@@ -355,7 +348,6 @@ export function ReviewForm({
         onChange={(event) => setTitle(event.target.value)}
         disabled={submitting}
         fullWidth
-        sx={useTitleAccent ? titleAccentTextFieldSx : undefined}
         error={Boolean(fieldErrors.title)}
         helperText={fieldErrors.title}
         slotProps={{
@@ -379,7 +371,6 @@ export function ReviewForm({
         fullWidth
         multiline
         minRows={4}
-        sx={useTitleAccent ? titleAccentTextFieldSx : undefined}
         error={Boolean(fieldErrors.body)}
         helperText={
           fieldErrors.body ??
@@ -401,7 +392,6 @@ export function ReviewForm({
           variant="contained"
           color="primary"
           disabled={submitting}
-          sx={useTitleAccent ? titleAccentButtonSx : undefined}
           startIcon={
             submitting ? (
               <CircularProgress size={18} color="inherit" aria-hidden />

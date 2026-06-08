@@ -11,7 +11,6 @@ import {
   SectionHeading,
   ShareButton,
   SignInPrompt,
-  TitleColorScope,
   TitleFacts,
   WatchlistButton,
 } from "@/components";
@@ -21,7 +20,6 @@ import { ReviewList } from "@/components/ReviewList";
 import { ReviewsProvider } from "@/components/reviews-context";
 import { auth } from "@/auth";
 import { fetchGroupOneApi } from "@/lib/api";
-import { TITLE_ACCENT } from "@/lib/title-color";
 import { parseMediaType } from "@/lib/title-route";
 import { posterTransitionName } from "@/lib/view-transition";
 import type { MediaType } from "@/types/media";
@@ -294,10 +292,7 @@ export default async function TitleDetailPage({
     "linear-gradient(135deg, color-mix(in srgb, var(--mui-palette-common-black) 88%, var(--mui-palette-primary-main)) 0%, var(--mui-palette-common-black) 100%)";
 
   return (
-    // Per-title accent (JO-2): defaults to the brand emerald/mint, then adopts a
-    // luminance-clamped color extracted from the poster client-side. Descendants
-    // opt in via `var(--title-accent)` — never applied to body text.
-    <TitleColorScope posterUrl={posterUrl}>
+    <>
       {recentlyViewedItem && <RecentlyViewedRecorder item={recentlyViewedItem} />}
 
       {/* ── Cinematic hero band: full-bleed backdrop + scrim/vignette, with the
@@ -416,7 +411,7 @@ export default async function TitleDetailPage({
           <Box sx={{ pb: { md: 1 }, minWidth: 0 }}>
             <Typography
               variant="overline"
-              sx={{ color: TITLE_ACCENT, display: "block", mb: 1.5 }}
+              sx={{ color: "primary.main", display: "block", mb: 1.5 }}
             >
               {typeLabel}
             </Typography>
@@ -474,7 +469,7 @@ export default async function TitleDetailPage({
                   alignItems: "center",
                   gap: 1,
                   "& .MuiIconButton-root:hover": {
-                    color: TITLE_ACCENT,
+                    color: "primary.main",
                   },
                 }}
               >
@@ -533,7 +528,7 @@ export default async function TitleDetailPage({
                 averageScore !== undefined ? averageScore.toFixed(1) : "Not rated",
               icon:
                 averageScore !== undefined ? (
-                  <StarRoundedIcon sx={{ fontSize: 20, color: TITLE_ACCENT }} />
+                  <StarRoundedIcon sx={{ fontSize: 20, color: "primary.main" }} />
                 ) : null,
             },
             {
@@ -663,9 +658,7 @@ export default async function TitleDetailPage({
               position: { md: "sticky" },
               top: { md: 92 },
               border: "1px solid",
-              // Accent-tinted hairline — a subtle per-title mix over the neutral
-              // divider so the panel picks up the poster's hue.
-              borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 30%, var(--mui-palette-divider))`,
+              borderColor: "divider",
               bgcolor: "background.paper",
               p: { xs: 2.5, md: 3 },
             }}
@@ -675,7 +668,7 @@ export default async function TitleDetailPage({
               Add or update your score for this title.
             </Typography>
             {canWrite ? (
-              <RatingControl tmdbId={id} mediaType={mediaType} useTitleAccent />
+              <RatingControl tmdbId={id} mediaType={mediaType} />
             ) : (
               <SignInPrompt action="rate this title" />
             )}
@@ -696,7 +689,7 @@ export default async function TitleDetailPage({
               mt: { xs: 6, md: 8 },
               pt: 4,
               borderTop: "1px solid",
-              borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
+              borderColor: "divider",
             }}
           >
             <SectionHeading>Reviews</SectionHeading>
@@ -729,7 +722,7 @@ export default async function TitleDetailPage({
               >
                 <SectionHeading>Write a review</SectionHeading>
                 {canWrite ? (
-                  <ReviewForm tmdbId={id} mediaType={mediaType} useTitleAccent />
+                  <ReviewForm tmdbId={id} mediaType={mediaType} />
                 ) : (
                   <SignInPrompt action="write a review" />
                 )}
@@ -738,6 +731,6 @@ export default async function TitleDetailPage({
           </Box>
         </ReviewsProvider>
       </PageContainer>
-    </TitleColorScope>
+    </>
   );
 }
