@@ -176,10 +176,6 @@ export default function AboutPage() {
             </Reveal>
           ))}
         </Box>
-        <MetaText sx={{ display: "block", mt: 3, color: "text.secondary" }}>
-          Original feature lanes are credited above. Rudolf led the cross-app
-          integration and final visual redesign that shaped most of the shipped UI.
-        </MetaText>
       </Box>
 
       <Box component="section" sx={{ mb: { xs: 8, md: 11 } }}>
