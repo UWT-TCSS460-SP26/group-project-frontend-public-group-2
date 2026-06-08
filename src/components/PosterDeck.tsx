@@ -55,11 +55,15 @@ function fanTransform(offset: number): string {
   return `translate(-50%, -50%) translateX(${x}px) translateZ(${z}px) rotateY(${rotate}deg) scale(${scale})`;
 }
 
-// Mobile = a vertical "stacked cards" pose: the active card sits front and full,
-// the next two peek up behind it.
-function stackTransform(offset: number): string {
-  const shown = Math.max(offset, 0);
-  return `translate(-50%, 0) translateY(${-shown * 18}px) scale(${1 - shown * 0.05})`;
+// Mobile = a side-peek carousel pose so the horizontal swipe affordance is visible
+// before the user interacts. The active card sits centred; its neighbours peek in
+// from the sides and drop back slightly.
+function mobileTransform(offset: number): string {
+  const abs = Math.abs(offset);
+  const x = offset * 54;
+  const y = abs * 10;
+  const scale = 1 - abs * 0.08;
+  return `translate(-50%, 0) translateX(${x}px) translateY(${y}px) scale(${scale})`;
 }
 
 const navBtnSx = {
@@ -94,8 +98,9 @@ const CORNERS = [
  * any poster lifts it with a sheen sweep. Below the stage, the active film's
  * metadata cross-fades in — oversized serif title + a strict mono catalog line.
  *
- * Mobile drops the fan for a tap-friendly vertical stack. Transform/opacity only
- * (GPU, 60fps); reduced-motion users get a static, legible layout.
+ * Mobile keeps the same one-at-a-time focus, but shifts to a side-peek carousel
+ * so the horizontal swipe gesture reads visually. Transform/opacity only (GPU,
+ * 60fps); reduced-motion users get a static, legible layout.
  */
 export function PosterDeck({ items }: { items: DeckItem[] }) {
   const deck = items.slice(0, MAX_CARDS);
@@ -182,7 +187,7 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
       <Box
         ref={stageRef}
         role="group"
-        aria-label="Popular this week — poster deck"
+        aria-label="Popular this week — poster deck. Swipe left or right on mobile."
         tabIndex={0}
         onKeyDown={onKeyDown}
         onTouchStart={onTouchStart}
@@ -229,7 +234,7 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
           const src = posterUrl(item.posterPath);
           const isActive = offset === 0;
           const fanShown = abs <= WINDOW;
-          const stackShown = offset >= 0 && offset <= WINDOW;
+          const mobileShown = abs <= WINDOW;
           const reachable = fanShown;
 
           return (
@@ -262,16 +267,16 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
                 top: { xs: "auto", md: "50%" },
                 bottom: { xs: 24, md: "auto" },
                 display: "block",
-                width: { xs: "min(250px, calc(100% - 40px))", sm: 268, md: 284 },
+                width: { xs: "min(244px, calc(100% - 88px))", sm: 268, md: 284 },
                 textDecoration: "none",
-                transformOrigin: "center center",
-                transform: { xs: stackTransform(offset), md: fanTransform(offset) },
+                transformOrigin: { xs: "center top", md: "center center" },
+                transform: { xs: mobileTransform(offset), md: fanTransform(offset) },
                 opacity: {
-                  xs: offset === 0 ? 1 : offset === 1 ? 0.5 : offset === 2 ? 0.26 : 0,
+                  xs: abs === 0 ? 1 : abs === 1 ? 0.42 : abs === 2 ? 0.16 : 0,
                   md: abs === 0 ? 1 : abs === 1 ? 0.94 : abs === 2 ? 0.74 : 0,
                 },
-                zIndex: { xs: 30 - Math.max(offset, 0), md: 30 - abs },
-                pointerEvents: { xs: stackShown ? "auto" : "none", md: fanShown ? "auto" : "none" },
+                zIndex: { xs: 30 - abs, md: 30 - abs },
+                pointerEvents: { xs: mobileShown ? "auto" : "none", md: fanShown ? "auto" : "none" },
                 transition:
                   "transform 600ms cubic-bezier(0.4, 0, 0.2, 1), opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)",
                 cursor: "pointer",
@@ -427,6 +432,47 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
               {current.overview}
             </Typography>
           )}
+          <Box
+            aria-hidden
+            sx={{
+              display: { xs: "flex", sm: "none" },
+              alignItems: "center",
+              gap: 1,
+              mt: 1.5,
+              width: "100%",
+            }}
+          >
+            <ChevronLeftIcon sx={{ fontSize: 16, color: "text.secondary", opacity: 0.72 }} />
+            <Box
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 0.75,
+              }}
+            >
+              {deck.map((item, i) => {
+                const isCurrent = i === active;
+                return (
+                  <Box
+                    key={`pager-${item.mediaType}-${item.id}`}
+                    sx={{
+                      width: isCurrent ? 18 : 5,
+                      height: 5,
+                      borderRadius: 999,
+                      bgcolor: isCurrent ? "primary.main" : "divider",
+                      transition:
+                        "width 260ms cubic-bezier(0.4, 0, 0.2, 1), background-color 260ms ease, opacity 260ms ease",
+                      opacity: isCurrent ? 1 : 0.9,
+                    }}
+                  />
+                );
+              })}
+            </Box>
+            <ChevronRightIcon sx={{ fontSize: 16, color: "text.secondary", opacity: 0.72 }} />
+          </Box>
         </Box>
 
         <Box
