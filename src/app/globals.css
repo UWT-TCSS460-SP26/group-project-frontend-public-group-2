@@ -10,9 +10,17 @@ body {
 }
 
 img,
-svg,
 video,
 canvas {
+  max-width: 100%;
+}
+
+/* Responsive guard for standalone SVGs only. MUI icons are sized in `em`
+   (width: 1em) and must be excluded: on WebKit/iOS `max-width: 100%` resolves
+   against an icon's shrink-to-fit containing block as 0, collapsing the icon to
+   zero width (height is unconstrained, so it stayed correct) — which made the
+   rating stars invisible on iPhone Safari/Chrome while desktop Blink was fine. */
+svg:not(.MuiSvgIcon-root) {
   max-width: 100%;
 }
 
