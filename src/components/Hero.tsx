@@ -14,12 +14,13 @@ interface HeroFeatured {
   director?: string;
   genres?: string[];
   blurb?: string;
-  stillUrl?: string | null;
   href: string;
 }
 
 interface HeroProps {
   featured: HeroFeatured;
+  /** Poster URLs for the diagonal panels behind the spotlight. */
+  panels?: string[];
   ctaLabel?: string;
 }
 
@@ -31,13 +32,12 @@ const ctaSx = {
   px: 2.5,
 } as const;
 
-// Spotlight radius and falloff — the lit disc that follows the cursor.
+// The lit disc that follows the cursor — reveals whichever panel it's over.
 const SPOTLIGHT =
-  "radial-gradient(circle 300px at var(--mx, 70%) var(--my, 40%), transparent 0%, transparent 24%, #000 72%)";
+  "radial-gradient(circle 320px at var(--mx, 60%) var(--my, 45%), transparent 0%, transparent 22%, #000 70%)";
 
-// Diagonal cut: the still occupies the right wedge; the left stays dark for copy.
-const CUT = "polygon(34% 0, 100% 0, 100% 100%, 14% 100%)";
-const CUT_EDGE = "polygon(calc(34% - 2px) 0, 100% 0, 100% 100%, calc(14% - 2px) 100%)";
+// Skew angle for the diagonal cut between panels.
+const SKEW = 7;
 
 function metaLine(f: HeroFeatured): string {
   return [
@@ -50,17 +50,18 @@ function metaLine(f: HeroFeatured): string {
 }
 
 /**
- * "Spotlight Cut" masthead — a dark cinema panel where the featured still lives
- * behind a diagonal cut and is hidden in ink until a soft spotlight, following the
- * cursor, reveals it. Oversized serif title + monospaced slate sit in the dark
- * wedge; an emerald keyline traces the cut. The panel fades into the page
- * background below so it merges with the existing sections.
+ * "Spotlight Panels" masthead — the still wall is split into diagonal (skewed)
+ * panels, each a different feature, sitting in ink. A soft spotlight follows the
+ * cursor and reveals whichever panel you move over; the panel under it also lifts
+ * slightly. Oversized serif title + slate + CTAs sit in the darkened foreground,
+ * and the panel lights resolve from theme tokens so it stays cohesive. The bottom
+ * fades into the page background so it merges with the sections below.
  *
- * Interaction is pointer-driven (rAF-throttled CSS variables — transform/mask only,
- * no layout). Touch devices (no hover) get the still revealed with a cinematic
- * scrim instead of the spotlight; the image settle honors reduced-motion.
+ * Pointer-driven (rAF-throttled CSS vars; transform/mask only — no layout). Touch
+ * devices (no hover) drop the ink veil and show the panels under a scrim; the panel
+ * settle honors reduced-motion.
  */
-export function Hero({ featured, ctaLabel = "View feature" }: HeroProps) {
+export function Hero({ featured, panels = [], ctaLabel = "View feature" }: HeroProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const raf = useRef<number | null>(null);
 
@@ -77,6 +78,8 @@ export function Hero({ featured, ctaLabel = "View feature" }: HeroProps) {
     });
   }, []);
 
+  const tiles = panels.slice(0, 6);
+
   return (
     <Box
       component="section"
@@ -90,66 +93,81 @@ export function Hero({ featured, ctaLabel = "View feature" }: HeroProps) {
         color: "common.white",
       }}
     >
-      {/* Emerald keyline behind the diagonal cut (desktop). */}
-      <Box
-        aria-hidden
-        sx={{
-          position: "absolute",
-          inset: 0,
-          display: { xs: "none", md: "block" },
-          bgcolor: "primary.main",
-          clipPath: CUT_EDGE,
-        }}
-      />
-
-      {/* Diagonally-clipped still + spotlight ink. */}
-      <Box aria-hidden sx={{ position: "absolute", inset: 0, clipPath: { md: CUT } }}>
-        {featured.stillUrl && (
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              transformOrigin: "center",
-              animation: "hero-image-in 1400ms cubic-bezier(0.22, 0.61, 0.36, 1) both",
-            }}
-          >
-            <Image
-              src={featured.stillUrl}
-              alt={featured.title}
-              fill
-              priority
-              sizes="100vw"
-              style={{ objectFit: "cover" }}
-            />
-          </Box>
-        )}
-
-        {/* Ink veil with the spotlight punched out — hover/pointer devices only. */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            bgcolor: "color-mix(in srgb, var(--mui-palette-common-black) 86%, transparent)",
-            WebkitMaskImage: SPOTLIGHT,
-            maskImage: SPOTLIGHT,
-            "@media (hover: none)": { display: "none" },
-          }}
-        />
-
-        {/* Cinematic scrim: keep the left dark for legibility + edge vignette. */}
+      {/* Diagonal panels — a skewed row of feature stills, slightly oversized so the
+          slant bleeds off both edges. */}
+      {tiles.length > 0 && (
         <Box
           aria-hidden
           sx={{
             position: "absolute",
             inset: 0,
-            pointerEvents: "none",
-            backgroundImage: [
-              "linear-gradient(90deg, color-mix(in srgb, var(--mui-palette-common-black) 90%, transparent) 0%, color-mix(in srgb, var(--mui-palette-common-black) 55%, transparent) 32%, transparent 64%)",
-              "radial-gradient(150% 120% at 62% 22%, transparent 50%, color-mix(in srgb, var(--mui-palette-common-black) 72%, transparent) 100%)",
-            ].join(", "),
+            display: "flex",
+            width: "120%",
+            left: "-10%",
+            transform: `skewX(-${SKEW}deg)`,
+            animation: "hero-image-in 1500ms cubic-bezier(0.22, 0.61, 0.36, 1) both",
           }}
-        />
-      </Box>
+        >
+          {tiles.map((src, i) => (
+            <Box
+              key={i}
+              sx={{
+                position: "relative",
+                flex: 1,
+                overflow: "hidden",
+                borderRight:
+                  i < tiles.length - 1
+                    ? "1px solid color-mix(in srgb, var(--mui-palette-primary-main) 70%, transparent)"
+                    : "none",
+                "@media (hover: hover)": {
+                  "&:hover .panel-img": { transform: `skewX(${SKEW}deg) scale(1.34)` },
+                },
+              }}
+            >
+              <Box
+                className="panel-img"
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  transform: `skewX(${SKEW}deg) scale(1.26)`,
+                  transformOrigin: "center",
+                  transition: "transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1)",
+                }}
+              >
+                <Image src={src} alt="" fill sizes="22vw" style={{ objectFit: "cover" }} />
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {/* Spotlight ink veil — hole follows the cursor (hover/pointer devices). */}
+      <Box
+        aria-hidden
+        sx={{
+          position: "absolute",
+          inset: 0,
+          bgcolor: "color-mix(in srgb, var(--mui-palette-common-black) 84%, transparent)",
+          WebkitMaskImage: SPOTLIGHT,
+          maskImage: SPOTLIGHT,
+          "@media (hover: none)": { display: "none" },
+        }}
+      />
+
+      {/* Cinematic scrim: dark foreground (left + bottom) for legible copy, and a
+          base reveal on touch where there's no spotlight. */}
+      <Box
+        aria-hidden
+        sx={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          backgroundImage: [
+            "linear-gradient(90deg, color-mix(in srgb, var(--mui-palette-common-black) 90%, transparent) 0%, color-mix(in srgb, var(--mui-palette-common-black) 50%, transparent) 38%, transparent 70%)",
+            "linear-gradient(0deg, color-mix(in srgb, var(--mui-palette-common-black) 82%, transparent) 0%, transparent 55%)",
+          ].join(", "),
+        }}
+      />
 
       {/* Copy */}
       <Box
@@ -168,7 +186,7 @@ export function Hero({ featured, ctaLabel = "View feature" }: HeroProps) {
           justifyContent: "flex-end",
         }}
       >
-        <Box sx={{ maxWidth: { xs: "100%", md: 520 } }}>
+        <Box sx={{ maxWidth: { xs: "100%", md: 540 } }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
             <Box sx={{ width: 36, height: "1px", bgcolor: "primary.main" }} />
             <MetaText sx={{ textTransform: "uppercase", letterSpacing: "0.24em", color: "primary.main" }}>
@@ -248,10 +266,7 @@ export function Hero({ featured, ctaLabel = "View feature" }: HeroProps) {
                 ...ctaSx,
                 px: 0,
                 color: "common.white",
-                "&:hover": {
-                  color: "primary.main",
-                  backgroundColor: "transparent",
-                },
+                "&:hover": { color: "primary.main", backgroundColor: "transparent" },
               }}
             >
               Browse all →
@@ -259,7 +274,6 @@ export function Hero({ featured, ctaLabel = "View feature" }: HeroProps) {
           </Box>
         </Box>
 
-        {/* Interaction hint (pointer devices). */}
         <MetaText
           aria-hidden
           sx={{
@@ -276,7 +290,7 @@ export function Hero({ featured, ctaLabel = "View feature" }: HeroProps) {
         </MetaText>
       </Box>
 
-      {/* Merge: fade the dark panel into the page background below. */}
+      {/* Merge: fade into the page background below. */}
       <Box
         aria-hidden
         sx={{

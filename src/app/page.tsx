@@ -59,6 +59,7 @@ export interface HeroFeatured {
 
 interface FeaturedHeroData {
   featured: HeroFeatured | null;
+  panels: string[];
   marqueeItems: string[];
 }
 
@@ -262,8 +263,13 @@ async function loadFeaturedHero(): Promise<LoadResult<FeaturedHeroData>> {
     ]);
     const movies = data.results;
     if (!data || movies.length === 0) {
-      return { ok: true, data: { featured: null, marqueeItems: [] } };
+      return { ok: true, data: { featured: null, panels: [], marqueeItems: [] } };
     }
+
+    const panels = movies
+      .map((m) => (m.poster_path ? stillUrl(undefined, m.poster_path) : null))
+      .filter((url): url is string => Boolean(url))
+      .slice(0, 6);
 
     const top = movies[0];
     const tmdb = await fetchEnrichedMovie(top.id);
@@ -287,7 +293,7 @@ async function loadFeaturedHero(): Promise<LoadResult<FeaturedHeroData>> {
       RAIL_LIMIT + 4,
     );
 
-    return { ok: true, data: { featured, marqueeItems } };
+    return { ok: true, data: { featured, panels, marqueeItems } };
   } catch (error) {
     return { ok: false, error };
   }
@@ -343,7 +349,7 @@ async function FeaturedHero() {
     );
   }
 
-  const { featured, marqueeItems } = result.data;
+  const { featured, panels, marqueeItems } = result.data;
   if (!featured) {
     return (
       <PageContainer>
@@ -357,7 +363,7 @@ async function FeaturedHero() {
 
   return (
     <>
-      <Hero featured={featured} />
+      <Hero featured={featured} panels={panels} />
 
       <Marquee items={marqueeItems} label="Now Showing" />
     </>
