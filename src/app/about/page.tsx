@@ -6,30 +6,53 @@ import { MetaText, PageContainer, PageTitle, Reveal, SectionHeading } from "@/co
 
 export const metadata: Metadata = { title: "About" };
 
-// The four of us across the whole quarter: we built a Group-1-shaped REST API in
-// Sprints 1–4, then turned around and built this consumer front-end in Sprints 5–8.
-// These are the high-level areas each of us owned on the front-end — the kind of
-// work, not a page-by-page list.
 const team = [
   {
     name: "Rudolf",
-    role: "Front-end lead",
-    areas: "Architecture · design system · motion · auth · API layer",
+    role: "Product, design & engineering lead",
+    backend:
+      "API architecture, TMDB and movie-detail foundation, versioning, validation, Auth²/JWKS, Prisma contracts, issue triage routes, CI, integration, and releases.",
+    frontend:
+      "App scaffold, auth/API layer, visual direction, design system, shared components, watchlist, motion and accessibility, integration, deployment, and the final UI/UX redesign and polish across every major route.",
   },
   {
     name: "Collins",
-    role: "Discovery & search",
-    areas: "Browsing · filters · sorting · ratings · compare",
+    role: "Discovery, ratings & comparison",
+    backend:
+      "Movie search and popular routes, auth setup, public issue reporting, personal ratings, ratings coverage, and OpenAPI audits.",
+    frontend:
+      "Rating control, browse, movie/TV search, filters and sorting, TV discovery, watchlist page, and compare.",
   },
   {
     name: "Mani",
-    role: "Home & live data",
-    areas: "Hero · rails · marquee · command palette",
+    role: "Home, community & live data",
+    backend:
+      "TV search and popular routes, ratings and reviews CRUD, request parsing, enriched movie/community work, and personal reviews.",
+    frontend:
+      "Profile foundation, editorial home data, hero, discovery rails, marquee, command palette, and recently viewed.",
   },
   {
     name: "Jonathan",
-    role: "Detail & reviews",
-    areas: "Title pages · reviews · profile",
+    role: "Titles, reviews & content",
+    backend:
+      "TV details, mutation and authorization coverage, API documentation, issue-admin tests, and author-surface consistency.",
+    frontend:
+      "Title detail foundation, review form and list, About, branded 404, and profile polish.",
+  },
+];
+
+const services = [
+  {
+    title: "Group 1 API",
+    note: "Our upstream partner provides the movie, TV, rating, review, and community endpoints consumed by this app.",
+  },
+  {
+    title: "TMDB",
+    note: "Movie and television metadata and artwork are supplied through The Movie Database.",
+  },
+  {
+    title: "Auth²",
+    note: "The course OAuth2/OIDC service provides sign-in and bearer tokens for authenticated ratings and reviews.",
   },
 ];
 
@@ -74,7 +97,7 @@ export default function AboutPage() {
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
+            gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" },
             gap: { xs: 2, md: 2.5 },
           }}
         >
@@ -136,24 +159,68 @@ export default function AboutPage() {
                   >
                     {member.role}
                   </MetaText>
-                  <MetaText
-                    sx={{
-                      display: "block",
-                      mt: 1.25,
-                      color: "text.secondary",
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {member.areas}
+                  <MetaText sx={{ display: "block", mt: 2, color: "primary.dark" }}>
+                    Back end · Sprints 1–4
                   </MetaText>
+                  <Typography sx={{ mt: 0.75, color: "text.secondary", lineHeight: 1.7 }}>
+                    {member.backend}
+                  </Typography>
+                  <MetaText sx={{ display: "block", mt: 2, color: "primary.dark" }}>
+                    Front end · Sprints 5–8
+                  </MetaText>
+                  <Typography sx={{ mt: 0.75, color: "text.secondary", lineHeight: 1.7 }}>
+                    {member.frontend}
+                  </Typography>
                 </Box>
               </Box>
             </Reveal>
           ))}
         </Box>
         <MetaText sx={{ display: "block", mt: 3, color: "text.secondary" }}>
-          Designed and built by Group 2.
+          Original feature lanes are credited above. Rudolf led the cross-app
+          integration and final visual redesign that shaped most of the shipped UI.
         </MetaText>
+      </Box>
+
+      <Box component="section" sx={{ mb: { xs: 8, md: 11 } }}>
+        <SectionHeading>Partners & services</SectionHeading>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
+            gap: { xs: 2, md: 2.5 },
+          }}
+        >
+          {services.map((service, i) => (
+            <Reveal key={service.title} index={i}>
+              <Box
+                sx={{
+                  height: "100%",
+                  p: { xs: 2.5, md: 3 },
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.paper",
+                }}
+              >
+                <MetaText sx={{ color: "primary.dark" }}>
+                  {String(i + 1).padStart(2, "0")}
+                </MetaText>
+                <Typography
+                  sx={{
+                    mt: 1.5,
+                    fontFamily: "var(--font-fraunces), Georgia, serif",
+                    fontSize: "1.35rem",
+                  }}
+                >
+                  {service.title}
+                </Typography>
+                <Typography sx={{ mt: 1, color: "text.secondary", lineHeight: 1.7 }}>
+                  {service.note}
+                </Typography>
+              </Box>
+            </Reveal>
+          ))}
+        </Box>
       </Box>
 
       <Box component="section" sx={{ mb: { xs: 8, md: 11 } }}>

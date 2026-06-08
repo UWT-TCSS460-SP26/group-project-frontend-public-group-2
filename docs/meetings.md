@@ -433,3 +433,19 @@ reload + tabs, with a reduced-motion-safe "pop".
 - Most valuable habit: make the agent **prove** completion (build output, test
   pass, a real Lighthouse number) rather than accept "looks complete." Every
   claim in this sprint that mattered was the one we could check.
+
+## Final scope and attribution audit — Mon 6/8
+
+- Rechecked the Sprint 8 deliverables, master plan, repository history, and
+  shipped routes after the final mobile fixes.
+- The team kept the command palette, recently viewed, compare, advanced search,
+  sharing, and shared-element transition work. We intentionally removed the
+  poster-derived per-title color experiment from the final scope; title pages
+  use the stable emerald design-system accent instead.
+- Updated the README and About page from the full backend and frontend commit
+  history. The original feature lanes remain credited to Collins, Mani, and
+  Jonathan. Rudolf's credit now also records the app foundation, design system,
+  shared infrastructure, integration and release work, and the substantial
+  final UI/UX redesign and polish across the major routes.
+- Restored the About-page acknowledgements required by the sprint: Group 1's
+  upstream API, TMDB metadata/artwork, and Auth² authentication.

@@ -115,8 +115,8 @@ the invented feature, TV made first-class, accessibility, and the ship gate.
 
 - **Visual identity — "Repertory, evolved":** one warm editorial-cinema system on
   every route. Deep-emerald accent, oversized Fraunces display + IBM Plex Mono
-  meta, film-grain overlay, full-bleed imagery with scrims. Both **light
-  (gallery, default)** and **dark (cinema)** ship from a single MUI `colorSchemes`
+  meta, film-grain overlay, full-bleed imagery with scrims. Both **dark
+  (cinema, default)** and **light (gallery)** ship from a single MUI `colorSchemes`
   CSS-variables theme ([src/theme.ts](src/theme.ts)) with a **no-flash** toggle
   (`InitColorSchemeScript`). The dev-only [`/styleguide`](src/app/styleguide/page.tsx)
   shows every token + component in both modes.
@@ -132,7 +132,9 @@ the invented feature, TV made first-class, accessibility, and the ship gate.
   skeleton shimmer, a pausable marquee, a route cross-fade, and a shared-element
   poster morph (View Transitions API). Reduced motion is honored.
 - **Post-MVP features:** ⌘K command palette, recently-viewed rail, `/compare`
-  view, advanced search filters, and per-title dynamic accent color.
+  view, advanced search filters, sharing, and shared-element poster transitions.
+  Per-title poster-derived color was explored but intentionally left out of the
+  final scope.
 - **Accessibility:** one `<main>` + skip link, labeled forms, visible emerald
   focus ring, AA contrast in both modes, `next/image` + real `alt` everywhere.
 - **Ship gate:** deployed on Vercel (URL above) and reachable; Lighthouse
@@ -144,12 +146,16 @@ the invented feature, TV made first-class, accessibility, and the ship gate.
 Across the quarter the four of us built **both halves** of the same product:
 the REST API in Sprints 1–4, then this consumer front-end in Sprints 5–8.
 
-| Member | Front-end lane (Sprints 5–8) |
-| --- | --- |
-| Rudolf | Design system · UI foundation · front-end lead |
-| Collins | Browse · search · TV · watchlist page · compare |
-| Mani | Editorial home · discovery rails · command palette |
-| Jonathan | Title detail · about · 404 · profile |
+| Member | Back-end work (Sprints 1–4) | Front-end work (Sprints 5–8) |
+| --- | --- | --- |
+| Rudolf | API architecture, TMDB foundation, movie details, route versioning and validation, Auth²/JWKS and user mapping, Prisma/auth contracts, community summaries, issue-admin routes, CI, integration, deployment, and release docs | Product/UI lead; app scaffold, Auth² and API layer, design system and visual direction, shared components, watchlist foundation, motion/accessibility, write integration, testing, Lighthouse/deployment, and the final UI/UX redesign and polish across home, browse, search, compare, title, profile, About, navigation, and mobile |
+| Collins | Movie search/popular, auth setup, issue reporting, personal ratings, ratings tests/docs, and OpenAPI audits | Rating control, browse, movie/TV search, filters/sorting, TV discovery, watchlist page, and compare |
+| Mani | TV search/popular, ratings and reviews CRUD, parsing helpers, enriched movie/community work, and personal reviews | Profile foundation, editorial home data, hero/rails/marquee, command palette, and recently viewed |
+| Jonathan | TV details, mutation/auth coverage, API documentation, issue-admin tests, and author-surface consistency | Title detail foundation, review form/list, About, branded 404, and profile polish |
+
+The lanes above record original feature ownership. Rudolf also performed the
+cross-app integration and final design pass that established most of the
+shipped interface's visual composition and interaction polish.
 
 ## References
 

@@ -74,8 +74,7 @@ home — the whole point of the sprint — and **improves LCP** (3.6 s → 2.9 s
    (`role="listbox"`/`option`, ↑↓/Enter/Esc, focus trap, `aria-selected`).
 3. **AA contrast in both modes + honored reduced motion.** Small accent
    text/links use the deeper `primary.dark` on the bone surface (and the
-   brighter mint in dark mode via `theme.applyStyles`); the per-title poster
-   color is luminance-clamped and never applied to body text; a
+   brighter mint in dark mode via `theme.applyStyles`); a
    `prefers-reduced-motion: reduce` block neutralizes animations, freezes the
    marquee, and disables the poster view-transition. Every poster/backdrop is a
    `next/image` with a meaningful `alt` (decorative scrims are `alt=""`).
