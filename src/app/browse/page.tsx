@@ -12,6 +12,7 @@ import {
   MetaText,
   MovieCard,
   PageContainer,
+  PageTitle,
   Reveal,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
@@ -71,122 +72,36 @@ export default async function BrowsePage({
 
   return (
     <PageContainer>
+      <PageTitle title="Browse" />
+
+      <Typography
+        sx={{
+          mb: { xs: 4, md: 5 },
+          maxWidth: 620,
+          color: "text.secondary",
+          fontSize: { xs: "0.95rem", md: "1.05rem" },
+          lineHeight: 1.65,
+        }}
+      >
+        Explore what is popular now, or search the full catalog when you
+        already have a title in mind.
+      </Typography>
+
+      {/* Controls: Tabs + Search */}
       <Box
-        component="header"
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) minmax(360px, 0.72fr)" },
-          gap: { xs: 3, md: 6 },
-          alignItems: "end",
-          pb: { xs: 4, md: 5 },
-          mb: { xs: 3, md: 4 },
-          borderBottom: "1px solid",
-          borderColor: "divider",
+          gridTemplateColumns: { xs: "1fr", md: "auto 1fr" },
+          gap: { xs: 2, md: 3 },
+          alignItems: "center",
+          mb: { xs: 4, md: 5 },
         }}
       >
-        <Box>
-          <MetaText
-            sx={{
-              display: "block",
-              mb: 1.5,
-              color: "primary.main",
-              textTransform: "uppercase",
-              letterSpacing: "0.16em",
-            }}
-          >
-            Discover
-          </MetaText>
-          <Typography
-            variant="h1"
-            sx={{
-              fontSize: { xs: "2.65rem", sm: "3.25rem", md: "4rem" },
-              maxWidth: 680,
-            }}
-          >
-            Find something worth watching.
-          </Typography>
-          <Typography
-            sx={{
-              mt: 2,
-              maxWidth: 620,
-              color: "text.secondary",
-              fontSize: { xs: "0.95rem", md: "1.05rem" },
-              lineHeight: 1.65,
-            }}
-          >
-            Explore what is popular now, or search the full catalog when you
-            already have a title in mind.
-          </Typography>
-        </Box>
-
-        <Box
-          component="form"
-          method="GET"
-          action="/search"
-          role="search"
-          sx={{
-            p: { xs: 2, sm: 2.5 },
-            border: "1px solid",
-            borderColor: "divider",
-            bgcolor: "background.paper",
-          }}
-        >
-          <Box
-            component="label"
-            htmlFor="browse-search"
-            sx={{
-              display: "block",
-              mb: 1.25,
-              fontFamily: "var(--font-mono), ui-monospace, monospace",
-              fontSize: "0.78rem",
-              lineHeight: 1.4,
-              color: "text.secondary",
-              textTransform: "uppercase",
-              letterSpacing: "0.12em",
-            }}
-          >
-            Search the catalog
-          </Box>
-          <input type="hidden" name="type" value={searchType} />
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <TextField
-              id="browse-search"
-              name="q"
-              placeholder={tab === "tv" ? "Search TV shows" : "Search movies"}
-              fullWidth
-              size="small"
-              autoComplete="off"
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchRoundedIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <Button type="submit" variant="contained" sx={{ px: { xs: 2, sm: 2.75 } }}>
-              Search
-            </Button>
-          </Box>
-        </Box>
-      </Box>
-
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: { sm: "center" },
-          justifyContent: "space-between",
-          gap: 2,
-          mb: { xs: 3, md: 4 },
-        }}
-      >
+        {/* Movies / TV toggle */}
         <Box
           component="nav"
           aria-label="Browse media type"
-          sx={{ display: "inline-flex", alignSelf: "flex-start" }}
+          sx={{ display: "inline-flex" }}
         >
           {TABS.map((t, index) => (
             <ButtonLink
@@ -206,25 +121,53 @@ export default async function BrowsePage({
           ))}
         </Box>
 
-        <Box sx={{ textAlign: { sm: "right" } }}>
-          <Typography
-            variant="h2"
-            sx={{ fontSize: { xs: "1.5rem", md: "1.8rem" }, lineHeight: 1.15 }}
-          >
-            {resultLabel}
-          </Typography>
-          <MetaText
-            sx={{
-              display: "block",
-              mt: 0.75,
-              color: "text.secondary",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
+        {/* Search form */}
+        <Box
+          component="form"
+          method="GET"
+          action="/search"
+          sx={{ display: "flex", gap: 1 }}
+        >
+          <input type="hidden" name="type" value={searchType} />
+          <TextField
+            name="q"
+            placeholder={tab === "tv" ? "Search TV shows…" : "Search movies…"}
+            fullWidth
+            size="small"
+            autoComplete="off"
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRoundedIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              },
             }}
-          >
-            Page {page} · {items.length} titles
-          </MetaText>
+          />
+          <Button type="submit" variant="contained" sx={{ flexShrink: 0, px: 2.5 }}>
+            Search
+          </Button>
         </Box>
+      </Box>
+
+      {/* Results header */}
+      <Box sx={{ mb: { xs: 3, md: 4 } }}>
+        <Typography
+          variant="h2"
+          sx={{ fontSize: { xs: "1.35rem", md: "1.6rem" }, lineHeight: 1.2, mb: 0.75 }}
+        >
+          {resultLabel}
+        </Typography>
+        <MetaText
+          sx={{
+            color: "text.secondary",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          Page {page} · {items.length} titles
+        </MetaText>
       </Box>
 
       {/* ── Results ── */}
@@ -311,3 +254,4 @@ export default async function BrowsePage({
     </PageContainer>
   );
 }
+
