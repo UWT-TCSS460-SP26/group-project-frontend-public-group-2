@@ -17,6 +17,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
 import { signIn, signOut, useSession } from "next-auth/react";
+import { SITE_NAME, SITE_SECTION_LABEL } from "@/lib/brand";
 import { useWatchlist } from "@/lib/watchlist";
 import { ThemeToggle } from "./ThemeToggle";
 import { MetaText } from "./MetaText";
@@ -123,12 +124,13 @@ export function Header() {
           maxWidth: 1280,
           mx: "auto",
           width: "100%",
-          px: { xs: 2.5, md: 6 },
+          minWidth: 0,
+          px: { xs: 1.5, sm: 2.5, md: 6 },
           minHeight: { xs: 60, md: 72 },
-          gap: 1,
+          gap: { xs: 0.5, sm: 1 },
         }}
       >
-        <Link href="/" className={styles.brandLink} aria-label="Repertory home">
+        <Link href="/" className={styles.brandLink} aria-label={`${SITE_NAME} home`}>
           <Typography
             component="span"
             sx={{
@@ -140,7 +142,7 @@ export function Header() {
               whiteSpace: "nowrap",
             }}
           >
-            Repertory
+            {SITE_NAME}
           </Typography>
           <MetaText
             component="span"
@@ -150,7 +152,7 @@ export function Header() {
               color: "text.secondary",
             }}
           >
-            / Group 2
+            / {SITE_SECTION_LABEL}
           </MetaText>
         </Link>
 
@@ -188,10 +190,10 @@ export function Header() {
           })}
         </Box>
 
-        <Box sx={{ flex: 1 }} />
+        <Box sx={{ flex: 1, minWidth: 0 }} />
 
         {/* Right cluster */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, md: 1 } }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.25, sm: 0.5, md: 1 }, flexShrink: 0 }}>
           <IconButton
             onClick={() => setCommandOpen(true)}
             aria-label="Search movies and TV"
@@ -239,7 +241,7 @@ export function Header() {
                 display: { xs: "inline-flex", lg: "none" },
                 ...monoNav,
                 minWidth: 0,
-                px: 1.5,
+                px: { xs: 1, sm: 1.5 },
               }}
             >
               Sign in

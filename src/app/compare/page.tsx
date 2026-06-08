@@ -17,7 +17,7 @@ import { TMDB_IMG_BASE } from "@/types/media";
 import type { MediaType } from "@/types/media";
 import { TitlePicker } from "./TitlePicker";
 
-export const metadata: Metadata = { title: "Compare — Group 2" };
+export const metadata: Metadata = { title: "Compare" };
 export const dynamic = "force-dynamic";
 
 // ── Data types ────────────────────────────────────────────────────────────────

@@ -18,7 +18,7 @@ import { enrichSearchMetadata } from "@/lib/search-metadata";
 import type { MediaType, SearchResults } from "@/types/media";
 import { SearchFilters } from "./SearchFilters";
 
-export const metadata: Metadata = { title: "Search — Group 2" };
+export const metadata: Metadata = { title: "Search" };
 
 type SearchType = "movies" | "tv";
 

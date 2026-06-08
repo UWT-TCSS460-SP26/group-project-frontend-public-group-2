@@ -3,7 +3,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { MetaText, PageContainer, PageTitle, Reveal, SectionHeading } from "@/components";
 
-export const metadata: Metadata = { title: "About — Group 2" };
+export const metadata: Metadata = { title: "About" };
 
 // The four of us across the whole quarter: we built a Group-1-shaped REST API in
 // Sprints 1–4, then turned around and built this consumer front-end in Sprints 5–8.
@@ -93,11 +93,11 @@ export default function AboutPage() {
           A warm, gallery-quiet place to keep the films and shows worth your time.
         </Typography>
         <Typography sx={{ color: "text.secondary", lineHeight: 1.75, fontSize: { xs: "1rem", md: "1.05rem" } }}>
-          A consumer app for browsing, searching, rating, and reviewing movies and TV —
-          built by Group 2 for TCSS 460 (Client/Server Programming, UW Tacoma, Spring 2026).
-          Over one quarter the four of us shipped two halves of the same product: first the
-          REST API in Sprints 1–4, then this editorial front-end on top of it in Sprints 5–8.
-          The look — &ldquo;Repertory, evolved&rdquo; — is our own.
+          Repertory is a consumer app for browsing, searching, rating, and reviewing movies
+          and TV — built by Group 2 for TCSS 460 (Client/Server Programming, UW Tacoma,
+          Spring 2026). Over one quarter the four of us shipped two halves of the same
+          product: first the REST API in Sprints 1–4, then this editorial front-end on top
+          of it in Sprints 5–8. The look — &ldquo;Repertory, evolved&rdquo; — is our own.
         </Typography>
       </Box>
 

@@ -13,7 +13,7 @@ import {
 import { fetchGroupOneApi } from "@/lib/api";
 import type { MediaType, Movie, PopularResponse } from "@/types/media";
 
-export const metadata: Metadata = { title: "Browse — Group 2" };
+export const metadata: Metadata = { title: "Browse" };
 
 // Always fetch fresh — popular feeds change daily.
 export const dynamic = "force-dynamic";
