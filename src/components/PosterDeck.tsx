@@ -321,6 +321,8 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
                     fill
                     quality={85}
                     sizes="(max-width: 900px) 268px, 284px"
+                    loading="eager"
+                    priority={abs <= 1}
                     style={{ objectFit: "cover" }}
                   />
                 ) : (

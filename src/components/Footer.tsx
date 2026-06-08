@@ -49,9 +49,12 @@ export function Footer() {
           component="nav"
           sx={{
             width: { xs: "100%", sm: "auto" },
-            display: "grid",
-            gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", sm: "1fr" },
-            gap: { xs: 0.85, sm: 1.25 },
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: { xs: "stretch", sm: "flex-end" },
+            gap: 1,
+            alignContent: "flex-start",
+            maxWidth: { xs: "100%", sm: 300 },
           }}
         >
           {footerLinks.map((link) => (
@@ -59,9 +62,31 @@ export function Footer() {
               key={link.href}
               component={Link}
               href={link.href}
-              sx={{ textDecoration: "none" }}
+              sx={{
+                textDecoration: "none",
+                minWidth: { xs: "calc(50% - 4px)", sm: "auto" },
+                flex: { xs: "1 1 calc(50% - 4px)", sm: "0 0 auto" },
+              }}
             >
-              <MetaText sx={{ color: "text.secondary", transition: "color 180ms ease", "&:hover": { color: "text.primary" } }}>
+              <MetaText
+                sx={{
+                  display: "block",
+                  textAlign: "center",
+                  color: "text.secondary",
+                  px: 1.4,
+                  py: 1.05,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  bgcolor: "background.default",
+                  transition: "color 180ms ease, border-color 180ms ease, background-color 180ms ease",
+                  "&:hover": {
+                    color: "text.primary",
+                    borderColor: "primary.main",
+                    backgroundColor:
+                      "color-mix(in srgb, var(--mui-palette-primary-main) 8%, transparent)",
+                  },
+                }}
+              >
                 {link.label}
               </MetaText>
             </Box>

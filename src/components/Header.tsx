@@ -17,7 +17,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { SITE_NAME, SITE_SECTION_LABEL } from "@/lib/brand";
+import { SITE_NAME } from "@/lib/brand";
 import { useWatchlist } from "@/lib/watchlist";
 import { ThemeToggle } from "./ThemeToggle";
 import { MetaText } from "./MetaText";
@@ -144,16 +144,6 @@ export function Header() {
           >
             {SITE_NAME}
           </Typography>
-          <MetaText
-            component="span"
-            sx={{
-              display: { xs: "none", sm: "inline" },
-              ml: 1,
-              color: "text.secondary",
-            }}
-          >
-            / {SITE_SECTION_LABEL}
-          </MetaText>
         </Link>
 
         {/* Desktop nav — Profile lives only in the account menu (avatar), not here. */}
