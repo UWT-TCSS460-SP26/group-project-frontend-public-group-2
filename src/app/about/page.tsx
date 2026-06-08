@@ -13,26 +13,22 @@ const team = [
   {
     name: "Rudolf",
     role: "Front-end lead",
-    focus:
-      "Stood up the architecture and app shell, the design system and theme, the motion and accessibility contract, authentication, and the shared API/data layer the rest of the app is built on.",
+    areas: "Architecture · design system · motion · auth · API layer",
   },
   {
     name: "Collins",
     role: "Discovery & search",
-    focus:
-      "Built how you find and weigh titles — browsing the catalog, search with genre, year, and rating filters plus sorting, rating titles, and comparing two side by side.",
+    areas: "Browsing · filters · sorting · ratings · compare",
   },
   {
     name: "Mani",
     role: "Home & live data",
-    focus:
-      "Shaped the home experience — the cinematic hero, editorial rails, now-showing marquee, command palette, and the live community data wired behind them.",
+    areas: "Hero · rails · marquee · command palette",
   },
   {
     name: "Jonathan",
     role: "Detail & reviews",
-    focus:
-      "Owned the title pages and the account side — the cinematic detail layout, writing and managing reviews, the profile, and the supporting pages.",
+    areas: "Title pages · reviews · profile",
   },
 ];
 
@@ -172,16 +168,16 @@ export default function AboutPage() {
                   >
                     {member.role}
                   </MetaText>
-                  <Typography
+                  <MetaText
                     sx={{
-                      mt: 1.5,
+                      display: "block",
+                      mt: 1.25,
                       color: "text.secondary",
-                      lineHeight: 1.65,
-                      fontSize: "0.92rem",
+                      lineHeight: 1.6,
                     }}
                   >
-                    {member.focus}
-                  </Typography>
+                    {member.areas}
+                  </MetaText>
                 </Box>
               </Box>
             </Reveal>
