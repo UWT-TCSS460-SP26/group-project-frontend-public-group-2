@@ -2,8 +2,8 @@ import { createTheme } from "@mui/material/styles";
 
 /**
  * Single source of truth for the app's visual identity — "Repertory, evolved":
- * a warm, editorial cinema look. Light (gallery) is the default first impression;
- * dark (cinema) is the alternate. Both schemes share one typography scale, spacing,
+ * a warm, editorial cinema look. Dark (cinema) is the default first impression;
+ * light (gallery) is the alternate. Both schemes share one typography scale, spacing,
  * shape, and component vocabulary — only the palette changes between them.
  *
  * We use MUI's CSS-variables / `colorSchemes` API (`colorSchemeSelector: "class"`)
@@ -78,8 +78,8 @@ export const theme = createTheme({
     // Swap schemes by toggling a class on <html>; matches InitColorSchemeScript (RU-2).
     colorSchemeSelector: "class",
   },
-  // Light (gallery) is the brand's first impression; the toggle (RU-2) lets users switch.
-  defaultColorScheme: "light",
+  // Dark (cinema) is the brand's first impression; the toggle lets users switch.
+  defaultColorScheme: "dark",
   colorSchemes: {
     light: { palette: lightPalette },
     dark: { palette: darkPalette },

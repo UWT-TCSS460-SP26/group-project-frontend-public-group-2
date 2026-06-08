@@ -63,7 +63,7 @@ export default function RootLayout({
     >
       <body>
         {/* Sets the color-scheme class on <html> before paint → no theme flash. */}
-        <InitColorSchemeScript attribute="class" defaultMode="light" />
+        <InitColorSchemeScript attribute="class" defaultMode="dark" />
         <Providers>
           <a href="#main-content" className="skip-link">
             Skip to content
