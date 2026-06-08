@@ -10,6 +10,7 @@ import {
   MovieCard,
   Numeral,
   PageContainer,
+  PosterDeck,
   Rail,
   RailSkeleton,
   RecentlyViewedRail,
@@ -122,29 +123,6 @@ async function fetchEnrichedMovie(id: number): Promise<UnknownRecord | null> {
   } catch {
     return null;
   }
-}
-
-// A rotating "issue" number gives the masthead an editorial cadence without any
-// hardcoded value — derived from the ISO week so it advances over the term.
-function issueLabel(date = new Date()): string {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) + 3);
-  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
-  const week =
-    1 +
-    Math.round(
-      ((d.getTime() - firstThursday.getTime()) / 86400000 -
-        3 +
-        ((firstThursday.getUTCDay() + 6) % 7)) /
-        7,
-    );
-  return `NO. ${String(week).padStart(2, "0")}`;
-}
-
-function editionLabel(date = new Date()): string {
-  const seasons = ["WINTER", "SPRING", "SUMMER", "AUTUMN"];
-  const season = seasons[Math.floor((date.getMonth() / 12) * 4) % 4];
-  return `${season} ${date.getFullYear()}`;
 }
 
 function railTitle(index: number, title: string, tag?: string) {
@@ -379,11 +357,7 @@ async function FeaturedHero() {
 
   return (
     <>
-      <Hero
-        featured={featured}
-        issue={issueLabel()}
-        edition={editionLabel()}
-      />
+      <Hero featured={featured} />
 
       <Marquee items={marqueeItems} label="Now Showing" />
     </>
@@ -417,14 +391,20 @@ async function PopularRail() {
     );
   }
 
+  const deckItems = movies.map((movie) => ({
+    id: movie.id,
+    title: movie.title,
+    posterPath: movie.poster_path,
+    href: titleHref("movie", movie.id),
+    mediaType: "movie" as const,
+    year: movie.release_date?.slice(0, 4) || undefined,
+  }));
+
   return (
-    <RailSection index={index} title={title}>
-      {movies.map((movie, i) => (
-        <Reveal key={movie.id} index={i}>
-          <MovieCard movie={movie} />
-        </Reveal>
-      ))}
-    </RailSection>
+    <Box component="section" sx={{ mb: { xs: 6, md: 8 } }}>
+      <Box sx={{ mb: 3 }}>{railTitle(index, title)}</Box>
+      <PosterDeck items={deckItems} />
+    </Box>
   );
 }
 

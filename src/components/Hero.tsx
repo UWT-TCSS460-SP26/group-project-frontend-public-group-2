@@ -1,3 +1,6 @@
+"use client";
+
+import { useCallback, useRef } from "react";
 import Box from "@mui/material/Box";
 import Image from "next/image";
 import Typography from "@mui/material/Typography";
@@ -17,22 +20,8 @@ interface HeroFeatured {
 
 interface HeroProps {
   featured: HeroFeatured;
-  /** Editorial catalog number, e.g. "NO. 07". */
-  issue?: string;
-  /** Edition label, e.g. "SPRING 2026". */
-  edition?: string;
   ctaLabel?: string;
 }
-
-// Crisp print "hairline" — a touch darker than the global divider so the magazine
-// compartments read as ruled, while still resolving from the ink text token (stays
-// in sync with light/dark via CSS variables). This is the only place it lives.
-const HAIRLINE = "1px solid color-mix(in srgb, var(--mui-palette-text-primary) 26%, transparent)";
-
-// Same static SVG grain as <GrainOverlay>, scoped here over the still for a
-// tactile, printed-film feel. Decorative, GPU-composited, no JS.
-const NOISE =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E";
 
 const ctaSx = {
   fontFamily: "var(--font-mono), ui-monospace, monospace",
@@ -42,242 +31,265 @@ const ctaSx = {
   px: 2.5,
 } as const;
 
-function metaLine(issue: string | undefined, f: HeroFeatured): string {
-  const head = [issue, f.year, f.runtime ? `${f.runtime} MIN` : undefined]
+// Spotlight radius and falloff — the lit disc that follows the cursor.
+const SPOTLIGHT =
+  "radial-gradient(circle 300px at var(--mx, 70%) var(--my, 40%), transparent 0%, transparent 24%, #000 72%)";
+
+// Diagonal cut: the still occupies the right wedge; the left stays dark for copy.
+const CUT = "polygon(34% 0, 100% 0, 100% 100%, 14% 100%)";
+const CUT_EDGE = "polygon(calc(34% - 2px) 0, 100% 0, 100% 100%, calc(14% - 2px) 100%)";
+
+function metaLine(f: HeroFeatured): string {
+  return [
+    f.year,
+    f.runtime ? `${f.runtime} MIN` : undefined,
+    f.director ? `DIR. ${f.director.toUpperCase()}` : undefined,
+  ]
     .filter(Boolean)
-    .join("  /  ");
-  return f.director ? `${head}  —  DIR. ${f.director.toUpperCase()}` : head;
+    .join("  ·  ");
 }
 
 /**
- * Boutique "Arthouse Print" masthead — an asymmetric magazine grid on warm bone
- * paper, ruled with print hairlines: an editorial text column (Swiss numeral +
- * oversized serif title + monospaced slate) beside a full-bleed cinematic still
- * with vignette + grain. Built entirely from existing theme tokens so it reads as
- * an evolution of the design system, not a separate skin. Fully responsive — the
- * two columns stack (still first, then copy) on small screens, keeping the rules.
+ * "Spotlight Cut" masthead — a dark cinema panel where the featured still lives
+ * behind a diagonal cut and is hidden in ink until a soft spotlight, following the
+ * cursor, reveals it. Oversized serif title + monospaced slate sit in the dark
+ * wedge; an emerald keyline traces the cut. The panel fades into the page
+ * background below so it merges with the existing sections.
+ *
+ * Interaction is pointer-driven (rAF-throttled CSS variables — transform/mask only,
+ * no layout). Touch devices (no hover) get the still revealed with a cinematic
+ * scrim instead of the spotlight; the image settle honors reduced-motion.
  */
-export function Hero({
-  featured,
-  issue,
-  edition,
-  ctaLabel = "View the feature",
-}: HeroProps) {
+export function Hero({ featured, ctaLabel = "View feature" }: HeroProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const raf = useRef<number | null>(null);
+
+  const onMove = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const el = rootRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    if (raf.current) cancelAnimationFrame(raf.current);
+    raf.current = requestAnimationFrame(() => {
+      el.style.setProperty("--mx", `${x}%`);
+      el.style.setProperty("--my", `${y}%`);
+    });
+  }, []);
+
   return (
     <Box
       component="section"
+      ref={rootRef}
+      onMouseMove={onMove}
       sx={{
-        bgcolor: "background.default",
-        color: "text.primary",
-        borderTop: HAIRLINE,
-        // Closes the masthead and merges into the identical page background below.
-        borderBottom: HAIRLINE,
+        position: "relative",
+        overflow: "hidden",
+        minHeight: { xs: 560, sm: 600, md: 660 },
+        bgcolor: "common.black",
+        color: "common.white",
       }}
     >
-      <Box sx={{ maxWidth: 1280, mx: "auto" }}>
-        {/* Masthead strip */}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 2,
-            px: { xs: 3, md: 6 },
-            py: { xs: 1.25, md: 1.5 },
-            borderBottom: HAIRLINE,
-          }}
-        >
-          <MetaText
-            sx={{
-              textTransform: "uppercase",
-              letterSpacing: "0.22em",
-              color: "text.primary",
-            }}
-          >
-            Repertory — The Feature
-          </MetaText>
-          {edition && (
-            <MetaText sx={{ textTransform: "uppercase", letterSpacing: "0.22em" }}>
-              {edition}
-            </MetaText>
-          )}
-        </Box>
+      {/* Emerald keyline behind the diagonal cut (desktop). */}
+      <Box
+        aria-hidden
+        sx={{
+          position: "absolute",
+          inset: 0,
+          display: { xs: "none", md: "block" },
+          bgcolor: "primary.main",
+          clipPath: CUT_EDGE,
+        }}
+      />
 
-        {/* Asymmetric magazine grid: editorial column + full-bleed still. */}
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "minmax(0, 5fr) minmax(0, 7fr)" },
-          }}
-        >
-          {/* Editorial column */}
+      {/* Diagonally-clipped still + spotlight ink. */}
+      <Box aria-hidden sx={{ position: "absolute", inset: 0, clipPath: { md: CUT } }}>
+        {featured.stillUrl && (
           <Box
             sx={{
-              order: { xs: 2, md: 1 },
-              display: "flex",
-              flexDirection: "column",
-              px: { xs: 3, md: 6 },
-              py: { xs: 4, md: 6 },
-              // Hairline between stacked compartments (mobile) → vertical rule (desktop).
-              borderTop: { xs: HAIRLINE, md: "none" },
-              borderRight: { md: HAIRLINE },
+              position: "absolute",
+              inset: 0,
+              transformOrigin: "center",
+              animation: "hero-image-in 1400ms cubic-bezier(0.22, 0.61, 0.36, 1) both",
             }}
           >
-            {/* Oversized Swiss numeral + slate label */}
-            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2.5, mb: { xs: 3, md: 4 } }}>
-              <Typography
-                aria-hidden
-                sx={{
-                  fontFamily: "var(--font-inter), system-ui, sans-serif",
-                  fontWeight: 800,
-                  fontSize: { xs: "4.5rem", md: "7rem" },
-                  lineHeight: 0.78,
-                  letterSpacing: "-0.05em",
-                  color: "text.primary",
-                }}
-              >
-                1
-              </Typography>
-              <MetaText
-                component="span"
-                sx={{
-                  mt: 0.5,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.2em",
-                  lineHeight: 1.5,
-                  color: "primary.dark",
-                }}
-              >
-                Featured
-                <br />
-                Film
-              </MetaText>
-            </Box>
+            <Image
+              src={featured.stillUrl}
+              alt={featured.title}
+              fill
+              priority
+              sizes="100vw"
+              style={{ objectFit: "cover" }}
+            />
+          </Box>
+        )}
 
-            <Typography
-              variant="h1"
-              sx={{
-                fontFamily: "var(--font-fraunces), Georgia, serif",
-                fontSize: { xs: "2.6rem", sm: "3.2rem", md: "3.9rem" },
-                lineHeight: 1.02,
-                letterSpacing: "-0.01em",
-                mb: 2.5,
-                overflowWrap: "anywhere",
-              }}
-            >
-              {featured.title}
-            </Typography>
+        {/* Ink veil with the spotlight punched out — hover/pointer devices only. */}
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            bgcolor: "color-mix(in srgb, var(--mui-palette-common-black) 86%, transparent)",
+            WebkitMaskImage: SPOTLIGHT,
+            maskImage: SPOTLIGHT,
+            "@media (hover: none)": { display: "none" },
+          }}
+        />
 
+        {/* Cinematic scrim: keep the left dark for legibility + edge vignette. */}
+        <Box
+          aria-hidden
+          sx={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            backgroundImage: [
+              "linear-gradient(90deg, color-mix(in srgb, var(--mui-palette-common-black) 90%, transparent) 0%, color-mix(in srgb, var(--mui-palette-common-black) 55%, transparent) 32%, transparent 64%)",
+              "radial-gradient(150% 120% at 62% 22%, transparent 50%, color-mix(in srgb, var(--mui-palette-common-black) 72%, transparent) 100%)",
+            ].join(", "),
+          }}
+        />
+      </Box>
+
+      {/* Copy */}
+      <Box
+        sx={{
+          position: "relative",
+          zIndex: 2,
+          maxWidth: 1280,
+          mx: "auto",
+          width: "100%",
+          minHeight: { xs: 560, sm: 600, md: 660 },
+          px: { xs: 3, md: 6 },
+          pt: { xs: 12, md: 14 },
+          pb: { xs: 7, md: 9 },
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+        }}
+      >
+        <Box sx={{ maxWidth: { xs: "100%", md: 520 } }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
+            <Box sx={{ width: 36, height: "1px", bgcolor: "primary.main" }} />
+            <MetaText sx={{ textTransform: "uppercase", letterSpacing: "0.24em", color: "primary.main" }}>
+              Featured Film
+            </MetaText>
+          </Box>
+
+          <Typography
+            variant="h1"
+            sx={{
+              fontFamily: "var(--font-fraunces), Georgia, serif",
+              fontSize: { xs: "2.9rem", sm: "3.6rem", md: "4.8rem" },
+              lineHeight: 0.98,
+              letterSpacing: "-0.02em",
+              color: "common.white",
+              mb: 3,
+              overflowWrap: "anywhere",
+            }}
+          >
+            {featured.title}
+          </Typography>
+
+          {metaLine(featured) && (
             <MetaText
               sx={{
                 display: "block",
                 textTransform: "uppercase",
-                letterSpacing: "0.12em",
-                color: "text.secondary",
-                mb: featured.genres?.length ? 1.25 : 3,
+                letterSpacing: "0.14em",
+                color: "color-mix(in srgb, var(--mui-palette-common-white) 82%, transparent)",
+                mb: featured.genres?.length ? 1.5 : 3.5,
               }}
             >
-              {metaLine(issue, featured)}
+              {metaLine(featured)}
             </MetaText>
+          )}
 
-            {featured.genres && featured.genres.length > 0 && (
-              <MetaText
-                sx={{
-                  display: "block",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.16em",
-                  color: "primary.dark",
-                  mb: 3,
-                }}
-              >
-                {featured.genres.slice(0, 3).join("  ·  ")}
-              </MetaText>
-            )}
-
-            {featured.blurb && (
-              <Typography
-                sx={{
-                  color: "text.secondary",
-                  fontSize: { xs: "0.98rem", md: "1.02rem" },
-                  lineHeight: 1.65,
-                  maxWidth: 460,
-                  mb: 4,
-                  display: "-webkit-box",
-                  WebkitLineClamp: { xs: 4, md: 5 },
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}
-              >
-                {featured.blurb}
-              </Typography>
-            )}
-
-            <Box sx={{ mt: "auto" }}>
-              <ButtonLink href={featured.href} variant="contained" color="primary" sx={ctaSx}>
-                {ctaLabel}
-              </ButtonLink>
-            </Box>
-          </Box>
-
-          {/* Full-bleed cinematic still */}
-          <Box
-            sx={{
-              order: { xs: 1, md: 2 },
-              position: "relative",
-              minHeight: { xs: 240, sm: 360, md: 560 },
-              bgcolor: "common.black",
-              overflow: "hidden",
-            }}
-          >
-            {featured.stillUrl && (
-              <Box
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  transformOrigin: "center",
-                  // Gentle settle-in (opacity + slight zoom-out). Keyframe in
-                  // globals.css; reduced-motion users get the end state instantly.
-                  animation: "hero-image-in 1300ms cubic-bezier(0.22, 0.61, 0.36, 1) both",
-                }}
-              >
-                <Image
-                  src={featured.stillUrl}
-                  alt={featured.title}
-                  fill
-                  priority
-                  sizes="(max-width: 900px) 100vw, 58vw"
-                  style={{ objectFit: "cover" }}
-                />
-              </Box>
-            )}
-
-            {/* Cinematic vignette */}
-            <Box
-              aria-hidden
+          {featured.genres && featured.genres.length > 0 && (
+            <MetaText
               sx={{
-                position: "absolute",
-                inset: 0,
-                pointerEvents: "none",
-                backgroundImage:
-                  "radial-gradient(125% 125% at 50% 42%, transparent 55%, color-mix(in srgb, var(--mui-palette-common-black) 58%, transparent) 100%)",
+                display: "block",
+                textTransform: "uppercase",
+                letterSpacing: "0.18em",
+                color: "primary.main",
+                mb: 3.5,
               }}
-            />
-            {/* Printed-film grain */}
-            <Box
-              aria-hidden
+            >
+              {featured.genres.slice(0, 3).join("  ·  ")}
+            </MetaText>
+          )}
+
+          {featured.blurb && (
+            <Typography
               sx={{
-                position: "absolute",
-                inset: 0,
-                pointerEvents: "none",
-                opacity: 0.14,
-                mixBlendMode: "overlay",
-                backgroundImage: `url("${NOISE}")`,
-                backgroundRepeat: "repeat",
+                color: "color-mix(in srgb, var(--mui-palette-common-white) 80%, transparent)",
+                fontSize: { xs: "1rem", md: "1.08rem" },
+                lineHeight: 1.7,
+                maxWidth: 440,
+                mb: 4.5,
+                display: "-webkit-box",
+                WebkitLineClamp: { xs: 3, md: 4 },
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
               }}
-            />
+            >
+              {featured.blurb}
+            </Typography>
+          )}
+
+          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 3 }}>
+            <ButtonLink href={featured.href} variant="contained" color="primary" sx={ctaSx}>
+              {ctaLabel}
+            </ButtonLink>
+            <ButtonLink
+              href="/browse"
+              variant="text"
+              sx={{
+                ...ctaSx,
+                px: 0,
+                color: "common.white",
+                "&:hover": {
+                  color: "primary.main",
+                  backgroundColor: "transparent",
+                },
+              }}
+            >
+              Browse all →
+            </ButtonLink>
           </Box>
         </Box>
+
+        {/* Interaction hint (pointer devices). */}
+        <MetaText
+          aria-hidden
+          sx={{
+            display: { xs: "none", md: "block" },
+            position: "absolute",
+            right: 24,
+            bottom: 24,
+            textTransform: "uppercase",
+            letterSpacing: "0.2em",
+            color: "color-mix(in srgb, var(--mui-palette-common-white) 45%, transparent)",
+          }}
+        >
+          Move to explore ◯
+        </MetaText>
       </Box>
+
+      {/* Merge: fade the dark panel into the page background below. */}
+      <Box
+        aria-hidden
+        sx={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 96,
+          zIndex: 1,
+          backgroundImage:
+            "linear-gradient(to bottom, transparent, var(--mui-palette-background-default))",
+        }}
+      />
     </Box>
   );
 }

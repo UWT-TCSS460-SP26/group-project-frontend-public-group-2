@@ -1,5 +1,6 @@
 export { Header } from "./Header";
 export { Hero } from "./Hero";
+export { PosterDeck } from "./PosterDeck";
 export { PopularGrid } from "./PopularGrid";
 export { MovieCard } from "./MovieCard";
 export { PageContainer } from "./PageContainer";
