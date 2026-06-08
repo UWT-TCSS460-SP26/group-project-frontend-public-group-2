@@ -11,7 +11,6 @@ import {
   SectionHeading,
   ShareButton,
   SignInPrompt,
-  StatBadge,
   TitleColorScope,
   TitleFacts,
   WatchlistButton,
@@ -101,6 +100,14 @@ function getYear(date: string | undefined) {
   if (!date) return undefined;
   const year = Number(date.slice(0, 4));
   return Number.isFinite(year) ? year : undefined;
+}
+
+function formatRuntime(minutes: number | undefined) {
+  if (!minutes) return undefined;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (hours === 0) return `${remainder} min`;
+  return remainder === 0 ? `${hours}h` : `${hours}h ${remainder}m`;
 }
 
 // Group 1's enriched endpoint returns HTTP 200 with a TMDB error body when the
@@ -251,6 +258,7 @@ export default async function TitleDetailPage({
     : [];
 
   const typeLabel = mediaType === "tv" ? "TV show" : "Movie";
+  const runtimeLabel = formatRuntime(runtime);
   const metaParts = [
     releaseYear ? String(releaseYear) : undefined,
     runtime ? `${runtime} min` : undefined,
@@ -500,53 +508,132 @@ export default async function TitleDetailPage({
       </Box>
 
       <PageContainer>
-        {/* Stats row — community average + TMDB vote_average (★) + runtime +
-            genre chips (mono), on the theme surface so tokens render correctly. */}
+        {/* A uniform information strip keeps values, labels, and touch-scale
+            spacing consistent across narrow and wide screens. */}
         <Box
           sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 1.25,
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "repeat(2, minmax(0, 1fr))",
+              sm: "repeat(4, minmax(0, 1fr))",
+            },
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
             mb: { xs: 4, md: 5 },
           }}
         >
-          {averageScore !== undefined && (
-            <StatBadge
-              icon={
-                <StarRoundedIcon sx={{ fontSize: 14, color: TITLE_ACCENT }} />
-              }
-              sx={{ borderColor: TITLE_ACCENT }}
+          {[
+            {
+              label:
+                ratingCount !== undefined
+                  ? `${ratingCount} ${ratingCount === 1 ? "rating" : "ratings"}`
+                  : "Community",
+              value:
+                averageScore !== undefined ? averageScore.toFixed(1) : "Not rated",
+              icon:
+                averageScore !== undefined ? (
+                  <StarRoundedIcon sx={{ fontSize: 20, color: TITLE_ACCENT }} />
+                ) : null,
+            },
+            {
+              label: "TMDB score",
+              value:
+                voteAverage !== undefined ? voteAverage.toFixed(1) : "Unavailable",
+              icon:
+                voteAverage !== undefined ? (
+                  <StarRoundedIcon sx={{ fontSize: 20, color: "warning.main" }} />
+                ) : null,
+            },
+            { label: "Runtime", value: runtimeLabel ?? "Unavailable" },
+            { label: "Format", value: typeLabel },
+          ].map((item, index) => (
+            <Box
+              key={item.label}
+              sx={{
+                minWidth: 0,
+                minHeight: { xs: 92, sm: 104 },
+                px: { xs: 2, sm: 2.5 },
+                py: { xs: 2, sm: 2.25 },
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                borderRight: {
+                  xs: index % 2 === 0 ? "1px solid" : "none",
+                  sm: index < 3 ? "1px solid" : "none",
+                },
+                borderBottom: {
+                  xs: index < 2 ? "1px solid" : "none",
+                  sm: "none",
+                },
+                borderColor: "divider",
+              }}
             >
-              {averageScore.toFixed(1)} community
-              {ratingCount !== undefined ? ` · ${ratingCount}` : ""}
-            </StatBadge>
-          )}
-          {voteAverage !== undefined && (
-            <StatBadge
-              icon={
-                <StarRoundedIcon sx={{ fontSize: 14, color: "warning.main" }} />
-              }
-            >
-              {voteAverage.toFixed(1)} TMDB
-            </StatBadge>
-          )}
-          {runtime ? <StatBadge>{runtime} MIN</StatBadge> : null}
-          {genres.map((genre) => (
-            <GenreChip key={genre} label={genre} />
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 0 }}>
+                {item.icon}
+                <Typography
+                  sx={{
+                    fontFamily: "var(--font-fraunces), Georgia, serif",
+                    fontSize: { xs: "1.15rem", sm: "1.35rem" },
+                    lineHeight: 1.15,
+                    color: "text.primary",
+                    overflowWrap: "anywhere",
+                  }}
+                >
+                  {item.value}
+                </Typography>
+              </Box>
+              <MetaText
+                sx={{
+                  mt: 0.75,
+                  color: "text.secondary",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                {item.label}
+              </MetaText>
+            </Box>
           ))}
         </Box>
 
+        {genres.length > 0 && (
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 1,
+              mt: -2.5,
+              mb: { xs: 4, md: 5 },
+            }}
+          >
+            <MetaText
+              sx={{
+                mr: 0.5,
+                color: "text.secondary",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+              }}
+            >
+              Genres
+            </MetaText>
+            {genres.map((genre) => (
+              <GenreChip key={genre} label={genre} />
+            ))}
+          </Box>
+        )}
+
         {/* Editorial two-column: synopsis + details on the left, a defined
             "Your rating" panel on the right. On md+ the panel is a sticky aside;
-            on mobile everything stacks (synopsis → rating → details). */}
+            on mobile the primary action comes before long-form content. */}
         <Box
           sx={{
             display: "grid",
             gap: { xs: 4, md: 6 },
             gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) 340px" },
             gridTemplateAreas: {
-              xs: `"synopsis" "rating" "details"`,
+              xs: `"rating" "synopsis" "details"`,
               md: `"synopsis rating" "details rating"`,
             },
             alignItems: "start",
@@ -583,25 +670,10 @@ export default async function TitleDetailPage({
               p: { xs: 2.5, md: 3 },
             }}
           >
-            <SectionHeading mb={averageScore !== undefined ? 0.5 : 2}>
-              Your rating
-            </SectionHeading>
-            {averageScore !== undefined && (
-              <MetaText
-                sx={{
-                  display: "block",
-                  mb: 2.5,
-                  color: "text.secondary",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                }}
-              >
-                Community {averageScore.toFixed(1)}
-                {ratingCount !== undefined
-                  ? ` · ${ratingCount} ${ratingCount === 1 ? "rating" : "ratings"}`
-                  : ""}
-              </MetaText>
-            )}
+            <SectionHeading mb={0.75}>Your rating</SectionHeading>
+            <Typography sx={{ mb: 2.5, color: "text.secondary", fontSize: "0.9rem" }}>
+              Add or update your score for this title.
+            </Typography>
             {canWrite ? (
               <RatingControl tmdbId={id} mediaType={mediaType} useTitleAccent />
             ) : (
@@ -627,27 +699,42 @@ export default async function TitleDetailPage({
               borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
             }}
           >
-            <SectionHeading>Community</SectionHeading>
-            <ReviewList />
-          </Box>
+            <SectionHeading>Reviews</SectionHeading>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) 380px" },
+                gridTemplateAreas: {
+                  xs: `"write" "community"`,
+                  md: `"community write"`,
+                },
+                gap: { xs: 5, md: 6 },
+                alignItems: "start",
+              }}
+            >
+              <Box sx={{ gridArea: "community", minWidth: 0 }}>
+                <SectionHeading>Community</SectionHeading>
+                <ReviewList />
+              </Box>
 
-          {/* Write a review — signed-in users get the form (Jonathan, J1/J2);
-              signed-out visitors get an inert sign-in prompt (Story 5). */}
-          <Box
-            component="section"
-            sx={{
-              mt: { xs: 6, md: 8 },
-              pt: 4,
-              borderTop: "1px solid",
-              borderColor: `color-mix(in srgb, ${TITLE_ACCENT} 38%, var(--mui-palette-divider))`,
-            }}
-          >
-            <SectionHeading>Write a review</SectionHeading>
-            {canWrite ? (
-              <ReviewForm tmdbId={id} mediaType={mediaType} useTitleAccent />
-            ) : (
-              <SignInPrompt action="write a review" />
-            )}
+              {/* Keep the contribution action beside the list on desktop and
+                  ahead of it on mobile, where discoverability matters more. */}
+              <Box
+                sx={{
+                  gridArea: "write",
+                  minWidth: 0,
+                  position: { md: "sticky" },
+                  top: { md: 92 },
+                }}
+              >
+                <SectionHeading>Write a review</SectionHeading>
+                {canWrite ? (
+                  <ReviewForm tmdbId={id} mediaType={mediaType} useTitleAccent />
+                ) : (
+                  <SignInPrompt action="write a review" />
+                )}
+              </Box>
+            </Box>
           </Box>
         </ReviewsProvider>
       </PageContainer>

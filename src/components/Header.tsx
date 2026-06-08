@@ -13,7 +13,6 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
-import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
 import { signIn, signOut, useSession } from "next-auth/react";
@@ -75,7 +74,6 @@ export function Header() {
   const pathname = usePathname();
   const { count } = useWatchlist();
 
-  const [navAnchor, setNavAnchor] = useState<null | HTMLElement>(null);
   const [accountAnchor, setAccountAnchor] = useState<null | HTMLElement>(null);
   const [commandOpen, setCommandOpen] = useState(false);
 
@@ -84,7 +82,6 @@ export function Header() {
   const email = session?.user?.email ?? "";
   const initial = email.trim().charAt(0).toUpperCase();
 
-  const closeNav = () => setNavAnchor(null);
   const closeAccount = () => setAccountAnchor(null);
 
   useEffect(() => {
@@ -125,9 +122,9 @@ export function Header() {
           mx: "auto",
           width: "100%",
           minWidth: 0,
-          px: { xs: 1.5, sm: 2.5, md: 6 },
-          minHeight: { xs: 60, md: 72 },
-          gap: { xs: 0.5, sm: 1 },
+          px: { xs: 1.25, sm: 2.5, md: 6 },
+          minHeight: { xs: 64, md: 72 },
+          gap: { xs: 0.75, sm: 1 },
         }}
       >
         <Link href="/" className={styles.brandLink} aria-label={`${SITE_NAME} home`}>
@@ -135,7 +132,7 @@ export function Header() {
             component="span"
             sx={{
               fontFamily: "var(--font-fraunces), Georgia, serif",
-              fontSize: { xs: "1.2rem", md: "1.4rem" },
+              fontSize: { xs: "1.08rem", sm: "1.2rem", md: "1.4rem" },
               fontWeight: 500,
               letterSpacing: "-0.01em",
               color: "text.primary",
@@ -183,19 +180,25 @@ export function Header() {
         <Box sx={{ flex: 1, minWidth: 0 }} />
 
         {/* Right cluster */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.25, sm: 0.5, md: 1 }, flexShrink: 0 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: { xs: 0.5, sm: 0.75, md: 1 },
+            flexShrink: 0,
+          }}
+        >
           <IconButton
             onClick={() => setCommandOpen(true)}
             aria-label="Search movies and TV"
             title="Search (⌘K)"
             size="small"
-            sx={iconSx}
+            sx={{ ...iconSx, width: { xs: 40, md: 32 }, height: { xs: 40, md: 32 } }}
           >
             <SearchIcon fontSize="small" />
           </IconButton>
 
-          {/* Desktop theme + account */}
-          <Box sx={{ display: { xs: "none", md: "inline-flex" } }}>
+          <Box sx={{ display: "inline-flex" }}>
             <ThemeToggle />
           </Box>
           {isAuthenticated ? (
@@ -203,7 +206,7 @@ export function Header() {
               onClick={(e) => setAccountAnchor(e.currentTarget)}
               aria-label="Account menu"
               size="small"
-              sx={{ display: { xs: "none", lg: "inline-flex" } }}
+              sx={{ width: { xs: 40, md: 32 }, height: { xs: 40, md: 32 } }}
             >
               {avatar(30)}
             </IconButton>
@@ -230,93 +233,20 @@ export function Header() {
               sx={{
                 display: { xs: "inline-flex", lg: "none" },
                 ...monoNav,
-                minWidth: 0,
-                px: { xs: 1, sm: 1.5 },
+                minWidth: { xs: 72, sm: 82 },
+                minHeight: 36,
+                px: { xs: 1.25, sm: 1.75 },
+                borderRadius: 999,
+                whiteSpace: "nowrap",
               }}
             >
               Sign in
             </Button>
           )}
-
-          {/* Mobile single menu */}
-          <IconButton
-            aria-label="Open menu"
-            onClick={(e) => setNavAnchor(e.currentTarget)}
-            size="small"
-            sx={{ display: { xs: "inline-flex", lg: "none" }, color: "text.primary" }}
-          >
-            <MenuIcon />
-          </IconButton>
         </Box>
       </Toolbar>
 
-      {/* Mobile menu — everything in one place */}
-      <Menu
-        anchorEl={navAnchor}
-        open={Boolean(navAnchor)}
-        onClose={closeNav}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ paper: { sx: menuPaperSx } }}
-      >
-        {isAuthenticated && (
-          <Box sx={{ px: 2, py: 1.25, display: "flex", alignItems: "center", gap: 1.5 }}>
-            {avatar(34)}
-            <Box sx={{ minWidth: 0 }}>
-              <MetaText sx={{ display: "block", color: "text.secondary" }}>Signed in</MetaText>
-              <Typography
-                sx={{ fontSize: "0.8rem", maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-              >
-                {email}
-              </Typography>
-            </Box>
-          </Box>
-        )}
-        {isAuthenticated && <Divider />}
-
-        {navLinks.map((link) => (
-          <MenuItem
-            key={link.href}
-            component={Link}
-            href={link.href}
-            onClick={closeNav}
-            selected={pathname === link.href}
-            sx={{ ...monoNav, py: 1.25, display: "flex", justifyContent: "space-between", gap: 2 }}
-          >
-            {link.label}
-            {link.watchlist && count > 0 && (
-              <Box component="span" sx={{ color: "primary.main" }}>
-                {count}
-              </Box>
-            )}
-          </MenuItem>
-        ))}
-        {isAuthenticated && (
-          <MenuItem component={Link} href="/profile" onClick={closeNav} sx={{ ...monoNav, py: 1.25 }}>
-            Profile
-          </MenuItem>
-        )}
-
-        <Divider />
-        <Box sx={{ px: 2, py: 0.75, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <MetaText>Theme</MetaText>
-          <ThemeToggle />
-        </Box>
-        <Divider />
-
-        <MenuItem
-          onClick={() => {
-            closeNav();
-            if (isAuthenticated) signOut({ callbackUrl: "/" });
-            else signIn("tcss460");
-          }}
-          sx={{ ...monoNav, py: 1.25 }}
-        >
-          {isAuthenticated ? "Sign out" : "Sign in"}
-        </MenuItem>
-      </Menu>
-
-      {/* Desktop account menu */}
+      {/* Account menu is available at every breakpoint when signed in. */}
       <Menu
         anchorEl={accountAnchor}
         open={Boolean(accountAnchor)}
