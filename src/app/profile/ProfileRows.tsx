@@ -14,6 +14,7 @@ import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { MetaText } from "@/components/MetaText";
+import { Reveal } from "@/components/Reveal";
 import { SectionHeading } from "@/components/SectionHeading";
 import { StatBadge } from "@/components/StatBadge";
 import { deleteRating, updateRating } from "@/lib/actions/ratings";
@@ -77,6 +78,21 @@ function posterUrl(path?: string | null) {
   return `${TMDB_IMG_BASE}${path}`;
 }
 
+// Shared editorial row card — sharp hairline frame on paper that lifts to the
+// emerald brand border on hover. Transform-only motion (60fps), reduced-motion safe.
+const rowCardSx = {
+  p: { xs: 2, md: 2.5 },
+  border: "1px solid",
+  borderColor: "divider",
+  bgcolor: "background.paper",
+  transition: "border-color 200ms ease, transform 200ms ease",
+  "&:hover": { borderColor: "primary.main", transform: "translateY(-2px)" },
+  "@media (prefers-reduced-motion: reduce)": {
+    transition: "none",
+    "&:hover": { transform: "none" },
+  },
+} as const;
+
 function SectionTitle({
   id,
   title,
@@ -90,10 +106,13 @@ function SectionTitle({
     <Box
       sx={{
         display: "flex",
-        alignItems: "center",
+        alignItems: "baseline",
         justifyContent: "space-between",
         gap: 2,
-        mb: 2,
+        mb: 2.5,
+        pb: 1.5,
+        borderBottom: "1px solid",
+        borderColor: "divider",
       }}
     >
       <SectionHeading id={id} mb={0}>
@@ -102,20 +121,6 @@ function SectionTitle({
       {count !== undefined && (
         <StatBadge>{`${count} ${count === 1 ? "item" : "items"}`}</StatBadge>
       )}
-    </Box>
-  );
-}
-
-/** Small editorial "X rated · Y reviewed" tally above the sections. */
-function SummaryHeader({ rated, reviewed }: { rated: number; reviewed: number }) {
-  return (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.25 }}>
-      <StatBadge
-        icon={<StarRoundedIcon sx={{ fontSize: 14, color: "primary.main" }} />}
-      >
-        {`${rated} rated`}
-      </StatBadge>
-      <StatBadge>{`${reviewed} reviewed`}</StatBadge>
     </Box>
   );
 }
@@ -254,15 +259,7 @@ function RatingRow({
   }
 
   return (
-    <Box
-      sx={{
-        p: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 1,
-        bgcolor: "background.paper",
-      }}
-    >
+    <Box sx={rowCardSx}>
       <Box
         sx={{
           display: "grid",
@@ -325,16 +322,28 @@ function RatingRow({
             />
           ) : (
             <>
-              <StatBadge
-                icon={
-                  <StarRoundedIcon
-                    sx={{ fontSize: 14, color: "primary.main" }}
-                  />
-                }
-              >
-                {`${item.score}/10`}
-              </StatBadge>
-              <MetaText sx={{ textTransform: "uppercase" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <StarRoundedIcon
+                  sx={{ fontSize: { xs: 20, md: 22 }, color: "primary.main" }}
+                />
+                <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.3 }}>
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontFamily: "var(--font-fraunces), Georgia, serif",
+                      fontWeight: 500,
+                      lineHeight: 1,
+                      letterSpacing: "-0.02em",
+                      fontSize: { xs: "1.9rem", md: "2.2rem" },
+                      color: "primary.main",
+                    }}
+                  >
+                    {item.score}
+                  </Typography>
+                  <MetaText sx={{ color: "text.secondary" }}>/10</MetaText>
+                </Box>
+              </Box>
+              <MetaText sx={{ textTransform: "uppercase", mt: 0.25 }}>
                 your rating
               </MetaText>
             </>
@@ -473,15 +482,7 @@ function ReviewRow({
   }
 
   return (
-    <Box
-      sx={{
-        p: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 1,
-        bgcolor: "background.paper",
-      }}
-    >
+    <Box sx={rowCardSx}>
       {editing ? (
         <Box sx={{ display: "grid", gap: 2 }}>
           <TextField
@@ -644,56 +645,56 @@ export function ProfileRows({
   const hasReviews = reviews.length > 0;
 
   return (
-    <Box sx={{ display: "grid", gap: { xs: 4, md: 5 } }}>
-      <SummaryHeader rated={ratings.length} reviewed={reviews.length} />
-
-      <Box sx={{ display: "grid", gap: { xs: 5, md: 7 } }}>
-        <Box component="section" aria-labelledby="profile-ratings-heading">
-          <SectionTitle
-            id="profile-ratings-heading"
-            title="Your ratings"
-            count={ratings.length}
+    <Box sx={{ display: "grid", gap: { xs: 5, md: 7 } }}>
+      <Box component="section" aria-labelledby="profile-ratings-heading">
+        <SectionTitle
+          id="profile-ratings-heading"
+          title="Your ratings"
+          count={ratings.length}
+        />
+        {ratingsError ? (
+          <Alert severity="error">{ratingsError}</Alert>
+        ) : hasRatings ? (
+          <Box sx={{ display: "grid", gap: 2 }}>
+            {ratings.map((item, i) => (
+              <Reveal key={item.id} index={i}>
+                <RatingRow item={item} titles={titles} />
+              </Reveal>
+            ))}
+          </Box>
+        ) : (
+          <EmptyState
+            message="You haven't rated anything yet."
+            detail="Rate a movie or TV show and it will show up here."
           />
-          {ratingsError ? (
-            <Alert severity="error">{ratingsError}</Alert>
-          ) : hasRatings ? (
-            <Box sx={{ display: "grid", gap: 2 }}>
-              {ratings.map((item) => (
-                <RatingRow key={item.id} item={item} titles={titles} />
-              ))}
-            </Box>
-          ) : (
-            <EmptyState
-              message="You haven't rated anything yet."
-              detail="Rate a movie or TV show and it will show up here."
-            />
-          )}
-        </Box>
+        )}
+      </Box>
 
-        <Box component="section" aria-labelledby="profile-reviews-heading">
-          <SectionTitle
-            id="profile-reviews-heading"
-            title="Your reviews"
-            count={reviews.length}
+      <Box component="section" aria-labelledby="profile-reviews-heading">
+        <SectionTitle
+          id="profile-reviews-heading"
+          title="Your reviews"
+          count={reviews.length}
+        />
+        {reviewsError ? (
+          <Alert severity="error">{reviewsError}</Alert>
+        ) : hasReviews ? (
+          <Box sx={{ display: "grid", gap: 2 }}>
+            {/* /reviews/me is intentionally thin. The titles map carries
+                the per-id title + poster we resolved in profile/page.tsx
+                via /movies/{id} and /tv/{id}. */}
+            {reviews.map((review, i) => (
+              <Reveal key={review.id} index={i}>
+                <ReviewRow review={review} titles={titles} />
+              </Reveal>
+            ))}
+          </Box>
+        ) : (
+          <EmptyState
+            message="You haven't reviewed anything yet."
+            detail="Write a review and it will show up here."
           />
-          {reviewsError ? (
-            <Alert severity="error">{reviewsError}</Alert>
-          ) : hasReviews ? (
-            <Box sx={{ display: "grid", gap: 2 }}>
-              {/* /reviews/me is intentionally thin. The titles map carries
-                  the per-id title + poster we resolved in profile/page.tsx
-                  via /movies/{id} and /tv/{id}. */}
-              {reviews.map((review) => (
-                <ReviewRow key={review.id} review={review} titles={titles} />
-              ))}
-            </Box>
-          ) : (
-            <EmptyState
-              message="You haven't reviewed anything yet."
-              detail="Write a review and it will show up here."
-            />
-          )}
-        </Box>
+        )}
       </Box>
     </Box>
   );
