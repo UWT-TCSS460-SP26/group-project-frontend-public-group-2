@@ -272,13 +272,18 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
                 transformOrigin: { xs: "center top", md: "center center" },
                 transform: { xs: mobileTransform(offset), md: fanTransform(offset) },
                 opacity: {
-                  xs: abs === 0 ? 1 : abs === 1 ? 0.42 : abs === 2 ? 0.16 : 0,
+                  xs: abs === 0 ? 1 : abs === 1 ? 0.6 : abs === 2 ? 0.34 : 0,
                   md: abs === 0 ? 1 : abs === 1 ? 0.94 : abs === 2 ? 0.74 : 0,
                 },
                 zIndex: { xs: 30 - abs, md: 30 - abs },
                 pointerEvents: { xs: mobileShown ? "auto" : "none", md: fanShown ? "auto" : "none" },
-                transition:
-                  "transform 600ms cubic-bezier(0.4, 0, 0.2, 1), opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)",
+                // Mobile: a snappier slide with the opacity settling faster than the
+                // move, so neighbours read as already-present and track the swipe
+                // instead of fading in a beat late. Desktop keeps the longer glide.
+                transition: {
+                  xs: "transform 430ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 280ms ease-out",
+                  md: "transform 600ms cubic-bezier(0.4, 0, 0.2, 1), opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)",
+                },
                 cursor: "pointer",
                 "@media (prefers-reduced-motion: reduce)": { transition: "none" },
                 // Hover lift + sheen on whichever poster the cursor is over — the
@@ -412,6 +417,10 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
               overflowWrap: "anywhere",
+              // Reserve the full two-line height on mobile so a short title doesn't
+              // collapse the caption — keeps the pager + actions below it from
+              // jumping every time the deck advances to a title of a different length.
+              minHeight: { xs: "calc(2 * 1.03em)", sm: "auto" },
               "&:hover": { color: "primary.dark" },
             }}
           >
@@ -434,47 +443,51 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
               {current.overview}
             </Typography>
           )}
+        </Box>
+
+        {/* Mobile pager — deliberately OUTSIDE the keyed/reveal-up block above so
+            it doesn't remount on every advance. Kept here, the active pip glides
+            between positions and sits at a fixed offset instead of jumping around
+            as the title above it grows and shrinks between titles. */}
+        <Box
+          aria-hidden
+          sx={{
+            display: { xs: "flex", sm: "none" },
+            alignItems: "center",
+            gap: 1,
+            width: "100%",
+          }}
+        >
+          <ChevronLeftIcon sx={{ fontSize: 16, color: "text.secondary", opacity: 0.72 }} />
           <Box
-            aria-hidden
             sx={{
-              display: { xs: "flex", sm: "none" },
+              flex: 1,
+              minWidth: 0,
+              display: "flex",
               alignItems: "center",
-              gap: 1,
-              mt: 1.5,
-              width: "100%",
+              justifyContent: "center",
+              gap: 0.75,
             }}
           >
-            <ChevronLeftIcon sx={{ fontSize: 16, color: "text.secondary", opacity: 0.72 }} />
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 0.75,
-              }}
-            >
-              {deck.map((item, i) => {
-                const isCurrent = i === active;
-                return (
-                  <Box
-                    key={`pager-${item.mediaType}-${item.id}`}
-                    sx={{
-                      width: isCurrent ? 18 : 5,
-                      height: 5,
-                      borderRadius: 999,
-                      bgcolor: isCurrent ? "primary.main" : "divider",
-                      transition:
-                        "width 260ms cubic-bezier(0.4, 0, 0.2, 1), background-color 260ms ease, opacity 260ms ease",
-                      opacity: isCurrent ? 1 : 0.9,
-                    }}
-                  />
-                );
-              })}
-            </Box>
-            <ChevronRightIcon sx={{ fontSize: 16, color: "text.secondary", opacity: 0.72 }} />
+            {deck.map((item, i) => {
+              const isCurrent = i === active;
+              return (
+                <Box
+                  key={`pager-${item.mediaType}-${item.id}`}
+                  sx={{
+                    width: isCurrent ? 18 : 5,
+                    height: 5,
+                    borderRadius: 999,
+                    bgcolor: isCurrent ? "primary.main" : "divider",
+                    transition:
+                      "width 260ms cubic-bezier(0.4, 0, 0.2, 1), background-color 260ms ease, opacity 260ms ease",
+                    opacity: isCurrent ? 1 : 0.9,
+                  }}
+                />
+              );
+            })}
           </Box>
+          <ChevronRightIcon sx={{ fontSize: 16, color: "text.secondary", opacity: 0.72 }} />
         </Box>
 
         <Box

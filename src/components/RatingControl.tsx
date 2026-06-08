@@ -66,18 +66,28 @@ export function RatingControl({
   // When authenticated, check whether this user already rated this title.
   useEffect(() => {
     if (status !== "authenticated") return;
-    getMyRatings().then((result) => {
-      setLoadingExisting(false);
-      if (!result.ok) return;
-      const mine = result.data.find(
-        (item) => item.tmdbId === tmdbId && item.mediaType === mediaType,
-      );
-      if (mine) {
-        setExistingRatingId(mine.id);
-        setStarValue(mine.score / 2);
-        setSavedScore(mine.score);
-      }
-    });
+    let active = true;
+    getMyRatings()
+      .then((result) => {
+        if (!active || !result.ok) return;
+        const mine = result.data.find(
+          (item) => item.tmdbId === tmdbId && item.mediaType === mediaType,
+        );
+        if (mine) {
+          setExistingRatingId(mine.id);
+          setStarValue(mine.score / 2);
+          setSavedScore(mine.score);
+        }
+      })
+      // A failed lookup must not strand the widget on "Loading…" forever — fall
+      // through to the empty form (resolved in `finally`) so the user can rate.
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoadingExisting(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [status, tmdbId, mediaType]);
 
   // ── Loading states ──────────────────────────────────────────────────────────
@@ -179,14 +189,21 @@ export function RatingControl({
             precision={0.5}
             max={5}
             disabled={busy}
-            sx={
-              useTitleAccent
+            sx={{
+              // Larger on touch: the default 24px stars are a cramped half-star
+              // target on a phone, which read as "nothing to tap".
+              fontSize: { xs: "2.3rem", sm: "1.9rem" },
+              // Empty stars must stay legible in dark mode — MUI's default
+              // `action.disabled` (~30% white) all but vanishes on the dark panel,
+              // so the control looked empty/inert on mobile.
+              "& .MuiRating-iconEmpty": { color: "text.secondary" },
+              ...(useTitleAccent
                 ? titleAccentRatingSx
                 : {
                     "& .MuiRating-iconFilled": { color: "primary.main" },
                     "& .MuiRating-iconHover": { color: "primary.light" },
-                  }
-            }
+                  }),
+            }}
           />
           {starValue !== null && (
             <Typography sx={{ color: "text.secondary", fontSize: "0.85rem" }}>

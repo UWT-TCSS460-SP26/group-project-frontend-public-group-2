@@ -119,11 +119,13 @@ const SAMPLE_WIDTH = 48;
 // Hue buckets (15° each) for a cheap saturation-weighted dominant-hue vote.
 const HUE_BUCKETS = 24;
 // Pixels outside these bounds are skipped as background/letterboxing/glare so
-// they don't drag the dominant hue toward black, white, or gray.
+// they don't drag the dominant hue toward black, white, or gray. Kept lenient on
+// the dark end: movie posters are mostly dark/moody, and clipping that too early
+// is what left most titles on the emerald fallback instead of their own hue.
 const MIN_ALPHA = 125;
-const SKIP_DARK = 0.1;
-const SKIP_LIGHT = 0.93;
-const SKIP_GRAY = 0.18;
+const SKIP_DARK = 0.06;
+const SKIP_LIGHT = 0.96;
+const SKIP_GRAY = 0.12;
 
 /**
  * Sample a loaded image and return its saturation-weighted dominant color, or
@@ -160,6 +162,14 @@ function dominantColor(img: HTMLImageElement): Rgb | null {
     b: 0,
   }));
 
+  // Secondary pool: every in-gamut pixel (muted ones included, with a small
+  // weight floor). When no vivid hue clearly wins, this average — re-saturated by
+  // the clamp — still gives a moody poster its own tint instead of the fallback.
+  let poolWeight = 0;
+  let poolR = 0;
+  let poolG = 0;
+  let poolB = 0;
+
   for (let i = 0; i < data.length; i += 4) {
     const a = data[i + 3];
     if (a < MIN_ALPHA) continue;
@@ -167,7 +177,16 @@ function dominantColor(img: HTMLImageElement): Rgb | null {
     const g = data[i + 1];
     const b = data[i + 2];
     const { h, s, l } = rgbToHsl({ r, g, b });
-    if (l < SKIP_DARK || l > SKIP_LIGHT || s < SKIP_GRAY) continue;
+    // Drop only true letterboxing/glare here so muted pixels still feed the pool.
+    if (l < SKIP_DARK || l > SKIP_LIGHT) continue;
+
+    const poolW = s + 0.05;
+    poolWeight += poolW;
+    poolR += r * poolW;
+    poolG += g * poolW;
+    poolB += b * poolW;
+
+    if (s < SKIP_GRAY) continue;
 
     const bucket = buckets[Math.min(HUE_BUCKETS - 1, Math.floor(h / (360 / HUE_BUCKETS)))];
     // Weight by saturation so vivid pixels (the title's "color") win over
@@ -183,13 +202,24 @@ function dominantColor(img: HTMLImageElement): Rgb | null {
   for (const bucket of buckets) {
     if (bucket.weight > best.weight) best = bucket;
   }
-  if (best.weight <= 0) return null; // grayscale / no usable color
+  if (best.weight > 0) {
+    return {
+      r: Math.round(best.r / best.weight),
+      g: Math.round(best.g / best.weight),
+      b: Math.round(best.b / best.weight),
+    };
+  }
 
-  return {
-    r: Math.round(best.r / best.weight),
-    g: Math.round(best.g / best.weight),
-    b: Math.round(best.b / best.weight),
-  };
+  // No vivid hue won the vote — re-saturate the overall average so the title
+  // still gets a bespoke accent. Only a fully transparent sample yields null.
+  if (poolWeight > 0) {
+    return {
+      r: Math.round(poolR / poolWeight),
+      g: Math.round(poolG / poolWeight),
+      b: Math.round(poolB / poolWeight),
+    };
+  }
+  return null;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement | null> {
