@@ -449,3 +449,21 @@ reload + tabs, with a reduced-motion-safe "pop".
   final UI/UX redesign and polish across the major routes.
 - Restored the About-page acknowledgements required by the sprint: Group 1's
   upstream API, TMDB metadata/artwork, and Auth² authentication.
+
+## Final deployment and submission audit — Mon 6/8
+
+- Replaced the expired free-tier Render PostgreSQL database, redeployed the
+  backend, and added an idempotent startup bootstrap driven by
+  `ADMIN_SUBJECT_ID` so the designated Auth² subject regains the local Admin
+  role after a fresh database is created.
+- Confirmed the backend health route and all required consumer routes were live.
+  Vercel reported a successful deployment for the final frontend commit.
+- Used the restored production admin identity to query the live bug queue.
+  `/v1/issues?pageSize=50&sort=createdAt:asc` returned HTTP 200 with zero
+  results, so no unresolved provider issues remained for Sprint 8.
+- Added a second production Lighthouse report for `/browse` using a true
+  412 × 823 mobile viewport. Accessibility, best practices, and SEO remained
+  100, CLS remained 0, and the responsive viewport and text-legibility audits
+  passed.
+- Re-ran the frontend tests, lint, and production build plus the backend format,
+  lint, build, and database-backed test suite as the final submission gate.

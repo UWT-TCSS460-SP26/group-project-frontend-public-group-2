@@ -7,12 +7,15 @@ shipped result, and the concrete a11y/perf fixes that moved the needle.
 
 - **Tool:** `lighthouse@12` (Google Chrome, headless) — categories
   `performance, accessibility, best-practices, seo`, default mobile preset.
-- **Route:** the home page `/` — the heaviest public route (cinematic hero +
+- **Primary route:** the home page `/` — the heaviest public route (cinematic hero +
   marquee + four streamed rails). It exercises images, fonts, motion, and the
   most JavaScript, so it's the honest stress test. (The other required surface,
   an authenticated route, renders behind Auth² OIDC sign-in and can't be driven
   by headless Lighthouse without an interactive session; the signed-out
   `/profile` simply shows the `<SignInPrompt>`.)
+- **Additional mobile route:** the deployed `/browse` catalog was audited on
+  June 8 with Lighthouse's real 412 × 823 mobile emulation to verify another
+  content-heavy responsive surface.
 - **Before:** the **pre-Sprint-8 commit** (`4b9151b`, end of Sprint 7) — the
   last commit before the identity work began. The pre-Sprint-8 *deployment* no
   longer exists, so the baseline was reconstructed by building that commit
@@ -24,7 +27,8 @@ shipped result, and the concrete a11y/perf fixes that moved the needle.
   transparency (see the caveat below).
 
 Raw reports live beside this file: `before-home.report.{html,json}`,
-`after-home.report.{html,json}`, `after-home-local.report.html`.
+`after-home.report.{html,json}`, `after-home-local.report.html`, and
+`after-browse.report.{html,json}`.
 
 ## Results
 
@@ -41,6 +45,12 @@ Raw reports live beside this file: `before-home.report.{html,json}`,
 The shipped app holds **100 / 100 / 100** on accessibility, best practices, and
 SEO and a **0 cumulative layout shift** while doing far more than the Sprint-7
 home — the whole point of the sprint — and **improves LCP** (3.6 s → 2.9 s).
+
+The additional production `/browse` run scored **100 accessibility / 100 best
+practices / 100 SEO**, **CLS 0**, and passed the mobile viewport and legible-text
+audits. Its cold, throttled performance score was 56 with a 3.9 s LCP because
+the dynamic catalog waits on the free-tier Render API; it is included as mobile
+and accessibility evidence, not presented as a performance improvement.
 
 ### An honest note on the numbers
 
