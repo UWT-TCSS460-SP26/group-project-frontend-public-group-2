@@ -121,8 +121,19 @@ body {
   initial-value: 42%;
 }
 
-/* Idle "searchlight" — the spotlight wanders the still wall on a slow, eased loop
-   so the masthead breathes even when no one is moving the cursor. */
+/* Ken Burns — a slow push/drift on the featured backdrop so the still has life.
+   Transform only (GPU); alternates so it never snaps back. */
+@keyframes hero-kenburns {
+  from {
+    transform: scale(1.04) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.12) translate3d(-1.5%, -1.5%, 0);
+  }
+}
+
+/* Idle "searchlight" — the spotlight wanders the still on a slow, eased loop so
+   the masthead breathes even when no one is moving the cursor. */
 @keyframes hero-spotlight-drift {
   0% {
     --mx: 30%;

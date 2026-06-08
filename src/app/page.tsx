@@ -59,7 +59,6 @@ export interface HeroFeatured {
 
 interface FeaturedHeroData {
   featured: HeroFeatured | null;
-  panels: string[];
   marqueeItems: string[];
 }
 
@@ -70,15 +69,6 @@ type LoadResult<T> =
 type UnknownRecord = Record<string, unknown>;
 
 const TMDB_STILL_BASE = "https://image.tmdb.org/t/p/w1280";
-// The hero blows posters up full-bleed behind the spotlight, so w500 looks soft.
-// w780 is the sweet spot — crisp at hero scale without a heavy payload.
-const TMDB_PANEL_BASE = "https://image.tmdb.org/t/p/w780";
-
-/** Higher-resolution poster URL for the full-bleed hero panels. */
-function panelUrl(poster: string | null): string | null {
-  if (!poster) return null;
-  return poster.startsWith("http") ? poster : `${TMDB_PANEL_BASE}${poster}`;
-}
 
 function asRecord(value: unknown): UnknownRecord | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -272,13 +262,8 @@ async function loadFeaturedHero(): Promise<LoadResult<FeaturedHeroData>> {
     ]);
     const movies = data.results;
     if (!data || movies.length === 0) {
-      return { ok: true, data: { featured: null, panels: [], marqueeItems: [] } };
+      return { ok: true, data: { featured: null, marqueeItems: [] } };
     }
-
-    const panels = movies
-      .map((m) => panelUrl(m.poster_path))
-      .filter((url): url is string => Boolean(url))
-      .slice(0, 6);
 
     const top = movies[0];
     const tmdb = await fetchEnrichedMovie(top.id);
@@ -302,7 +287,7 @@ async function loadFeaturedHero(): Promise<LoadResult<FeaturedHeroData>> {
       RAIL_LIMIT + 4,
     );
 
-    return { ok: true, data: { featured, panels, marqueeItems } };
+    return { ok: true, data: { featured, marqueeItems } };
   } catch (error) {
     return { ok: false, error };
   }
@@ -358,7 +343,7 @@ async function FeaturedHero() {
     );
   }
 
-  const { featured, panels, marqueeItems } = result.data;
+  const { featured, marqueeItems } = result.data;
   if (!featured) {
     return (
       <PageContainer>
@@ -372,7 +357,7 @@ async function FeaturedHero() {
 
   return (
     <>
-      <Hero featured={featured} panels={panels} />
+      <Hero featured={featured} />
 
       <Marquee items={marqueeItems} label="Now Showing" />
     </>

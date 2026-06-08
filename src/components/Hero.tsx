@@ -14,13 +14,13 @@ interface HeroFeatured {
   director?: string;
   genres?: string[];
   blurb?: string;
+  /** The featured film's own backdrop (TMDB w1280) — the single hero image. */
+  stillUrl?: string | null;
   href: string;
 }
 
 interface HeroProps {
   featured: HeroFeatured;
-  /** Poster URLs for the diagonal panels behind the spotlight. */
-  panels?: string[];
   ctaLabel?: string;
 }
 
@@ -32,17 +32,15 @@ const ctaSx = {
   px: 2.5,
 } as const;
 
-// The lit disc — reveals whichever panel sits under it. Its position is the
-// animated --mx/--my pair: ambient drift by default, glides to the cursor on hover.
+// The lit disc — keeps the featured backdrop bright where it falls and lets the
+// rest sink into shadow. Its position is the animated --mx/--my pair: ambient drift
+// by default, glides to the cursor on hover.
 const SPOTLIGHT =
-  "radial-gradient(circle 340px at var(--mx) var(--my), transparent 0%, transparent 24%, #000 72%)";
+  "radial-gradient(circle 360px at var(--mx) var(--my), transparent 0%, transparent 26%, #000 74%)";
 
 // A second, softer warm glow rides the same point for a richer falloff.
 const SPOTLIGHT_GLOW =
-  "radial-gradient(circle 420px at var(--mx) var(--my), color-mix(in srgb, var(--mui-palette-primary-main) 26%, transparent) 0%, transparent 60%)";
-
-// Skew angle for the diagonal cut between panels.
-const SKEW = 7;
+  "radial-gradient(circle 440px at var(--mx) var(--my), color-mix(in srgb, var(--mui-palette-primary-main) 24%, transparent) 0%, transparent 60%)";
 
 function metaLine(f: HeroFeatured): string {
   return [
@@ -55,18 +53,18 @@ function metaLine(f: HeroFeatured): string {
 }
 
 /**
- * "Spotlight Panels" masthead — the still wall is split into diagonal (skewed)
- * panels, each a different feature, sitting in ink. A soft spotlight follows the
- * cursor and reveals whichever panel you move over; the panel under it also lifts
- * slightly. Oversized serif title + slate + CTAs sit in the darkened foreground,
- * and the panel lights resolve from theme tokens so it stays cohesive. The bottom
- * fades into the page background so it merges with the sections below.
+ * "Spotlight" masthead — the one featured film's own backdrop sits full-bleed in
+ * ink. A soft spotlight keeps it lit where it falls: it drifts on a slow idle loop
+ * by default and glides to the cursor when you move the pointer, so the still feels
+ * lit-from-within rather than flatly displayed. The backdrop also breathes with a
+ * gentle Ken Burns push. Oversized serif title + slate + CTAs sit in the darkened
+ * foreground, and the bottom fades into the page background below.
  *
- * Pointer-driven (rAF-throttled CSS vars; transform/mask only — no layout). Touch
- * devices (no hover) drop the ink veil and show the panels under a scrim; the panel
- * settle honors reduced-motion.
+ * Pointer-driven (rAF-throttled CSS vars; transform/mask/opacity only — no layout).
+ * Touch devices (no hover) drop the ink veil and show the backdrop under a scrim;
+ * the drift and Ken Burns honor reduced-motion.
  */
-export function Hero({ featured, panels = [], ctaLabel = "View feature" }: HeroProps) {
+export function Hero({ featured, ctaLabel = "View feature" }: HeroProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const raf = useRef<number | null>(null);
 
@@ -96,8 +94,6 @@ export function Hero({ featured, panels = [], ctaLabel = "View feature" }: HeroP
     el.style.animationPlayState = "running";
   }, []);
 
-  const tiles = panels.slice(0, 6);
-
   return (
     <Box
       component="section"
@@ -113,63 +109,39 @@ export function Hero({ featured, panels = [], ctaLabel = "View feature" }: HeroP
         // Ambient searchlight; the transition smooths the hand-off to the cursor.
         animation: "hero-spotlight-drift 26s ease-in-out infinite",
         transition: "--mx 480ms ease-out, --my 480ms ease-out",
-        // Touch devices reveal the panels under a scrim, so the drift does nothing.
+        // Touch devices show the backdrop under a scrim, so the drift does nothing.
         "@media (hover: none)": { animation: "none" },
       }}
     >
-      {/* Diagonal panels — a skewed row of feature stills, slightly oversized so the
-          slant bleeds off both edges. */}
-      {tiles.length > 0 && (
+      {/* The featured film's own backdrop, full-bleed. Fades up from black on load
+          and slowly pushes in (Ken Burns) so the still has life under the spotlight. */}
+      {featured.stillUrl && (
         <Box
           aria-hidden
           sx={{
             position: "absolute",
             inset: 0,
-            display: "flex",
-            width: "120%",
-            left: "-10%",
-            transform: `skewX(-${SKEW}deg)`,
             animation: "hero-image-in 1500ms cubic-bezier(0.22, 0.61, 0.36, 1) both",
           }}
         >
-          {tiles.map((src, i) => (
-            <Box
-              key={i}
-              sx={{
-                position: "relative",
-                flex: 1,
-                overflow: "hidden",
-                borderRight:
-                  i < tiles.length - 1
-                    ? "1px solid color-mix(in srgb, var(--mui-palette-common-white) 8%, transparent)"
-                    : "none",
-                "@media (hover: hover)": {
-                  "&:hover .panel-img": { transform: `skewX(${SKEW}deg) scale(1.34)` },
-                },
-              }}
-            >
-              <Box
-                className="panel-img"
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  transform: `skewX(${SKEW}deg) scale(1.26)`,
-                  transformOrigin: "center",
-                  transition: "transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1)",
-                }}
-              >
-                <Image
-                  src={src}
-                  alt=""
-                  fill
-                  priority={i === 0}
-                  quality={90}
-                  sizes="(max-width: 900px) 60vw, 30vw"
-                  style={{ objectFit: "cover" }}
-                />
-              </Box>
-            </Box>
-          ))}
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              transformOrigin: "60% 40%",
+              animation: "hero-kenburns 26s ease-in-out infinite alternate",
+            }}
+          >
+            <Image
+              src={featured.stillUrl}
+              alt=""
+              fill
+              priority
+              quality={90}
+              sizes="100vw"
+              style={{ objectFit: "cover" }}
+            />
+          </Box>
         </Box>
       )}
 
@@ -187,7 +159,7 @@ export function Hero({ featured, panels = [], ctaLabel = "View feature" }: HeroP
       />
 
       {/* Warm emerald bloom that rides the spotlight for a richer, lit-from-within
-          falloff. Screen blend so it tints the lit panel without washing it out. */}
+          falloff. Screen blend so it tints the lit area without washing it out. */}
       <Box
         aria-hidden
         sx={{
