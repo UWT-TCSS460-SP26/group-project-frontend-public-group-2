@@ -26,6 +26,7 @@ interface CommandSearchResult {
   title: string;
   mediaType: MediaType;
   year?: string;
+  posterPath?: string | null;
 }
 
 function yearFrom(value?: string) {
@@ -39,6 +40,7 @@ function movieResult(movie: Movie): CommandSearchResult {
     title: movie.title,
     mediaType: "movie",
     year: yearFrom(movie.release_date),
+    posterPath: movie.poster_path,
   };
 }
 
@@ -49,6 +51,7 @@ function tvResult(show: TvTitle): CommandSearchResult {
     title: show.title ?? show.name ?? "Untitled",
     mediaType: "tv",
     year: yearFrom(show.first_air_date ?? show.release_date),
+    posterPath: show.poster_path,
   };
 }
 

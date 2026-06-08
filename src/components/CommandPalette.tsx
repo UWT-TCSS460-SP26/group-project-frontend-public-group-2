@@ -1,6 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
@@ -22,12 +23,14 @@ import InfoRoundedIcon from "@mui/icons-material/InfoRounded";
 import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import MovieRoundedIcon from "@mui/icons-material/MovieRounded";
 import TvRoundedIcon from "@mui/icons-material/TvRounded";
+import { TMDB_IMG_BASE } from "@/types/media";
 import { MetaText } from "./MetaText";
 import styles from "./CommandPalette.module.css";
 
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
+  isAuthenticated: boolean;
 }
 
 interface SearchResult {
@@ -36,6 +39,7 @@ interface SearchResult {
   title: string;
   mediaType: "movie" | "tv";
   year?: string;
+  posterPath?: string | null;
 }
 
 interface PaletteItem {
@@ -45,6 +49,7 @@ interface PaletteItem {
   label: string;
   kind: "link" | "result" | "search";
   icon: React.ReactNode;
+  posterUrl?: string | null;
 }
 
 // Slides the palette down from the top of the viewport (command-bar feel).
@@ -55,7 +60,7 @@ const SlideDownTransition = forwardRef(function SlideDownTransition(
   return <Slide direction="down" ref={ref} {...props} />;
 });
 
-const QUICK_LINKS: PaletteItem[] = [
+const BASE_QUICK_LINKS: PaletteItem[] = [
   {
     id: "home",
     href: "/",
@@ -89,14 +94,6 @@ const QUICK_LINKS: PaletteItem[] = [
     icon: <CompareArrowsRoundedIcon fontSize="small" />,
   },
   {
-    id: "profile",
-    href: "/profile",
-    title: "Profile",
-    label: "Page",
-    kind: "link",
-    icon: <PersonRoundedIcon fontSize="small" />,
-  },
-  {
     id: "about",
     href: "/about",
     title: "About",
@@ -106,6 +103,20 @@ const QUICK_LINKS: PaletteItem[] = [
   },
 ];
 
+const PROFILE_LINK: PaletteItem = {
+  id: "profile",
+  href: "/profile",
+  title: "Profile",
+  label: "Page",
+  kind: "link",
+  icon: <PersonRoundedIcon fontSize="small" />,
+};
+
+function posterUrl(path?: string | null) {
+  if (!path) return null;
+  return path.startsWith("http") ? path : `${TMDB_IMG_BASE}${path}`;
+}
+
 function resultToItem(result: SearchResult): PaletteItem {
   const mediaLabel = result.mediaType === "tv" ? "TV" : "Movie";
   return {
@@ -114,6 +125,7 @@ function resultToItem(result: SearchResult): PaletteItem {
     title: result.title,
     label: [mediaLabel, result.year].filter(Boolean).join(" · "),
     kind: "result",
+    posterUrl: posterUrl(result.posterPath),
     icon:
       result.mediaType === "tv" ? (
         <TvRoundedIcon fontSize="small" />
@@ -123,7 +135,7 @@ function resultToItem(result: SearchResult): PaletteItem {
   };
 }
 
-export function CommandPalette({ open, onClose }: CommandPaletteProps) {
+export function CommandPalette({ open, onClose, isAuthenticated }: CommandPaletteProps) {
   const router = useRouter();
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -176,9 +188,14 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
   // Empty input → page jump-links. Once typing → a "Search all results" row
   // (Enter-default, opens /search?q= with filters) above the live suggestions.
+  const quickLinks = useMemo(
+    () => (isAuthenticated ? [...BASE_QUICK_LINKS, PROFILE_LINK] : BASE_QUICK_LINKS),
+    [isAuthenticated],
+  );
+
   const items = useMemo(() => {
     const trimmed = query.trim();
-    if (!trimmed) return QUICK_LINKS;
+    if (!trimmed) return quickLinks;
 
     const searchAll: PaletteItem = {
       id: "search-all",
@@ -190,7 +207,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     };
 
     return [searchAll, ...results.map(resultToItem)];
-  }, [query, results]);
+  }, [query, quickLinks, results]);
 
   const activeItem = items[activeIndex];
 
@@ -303,7 +320,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 onClick={() => openItem(item)}
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: "24px 1fr auto",
+                  gridTemplateColumns: item.posterUrl ? "40px 1fr auto" : "24px 1fr auto",
                   gap: 1.5,
                   alignItems: "center",
                   px: 2,
@@ -337,9 +354,36 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                   sx={{
                     color: isSearch ? "primary.main" : "text.secondary",
                     display: "flex",
+                    width: item.posterUrl ? 40 : 24,
+                    height: item.posterUrl ? 56 : "auto",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  {item.icon}
+                  {item.posterUrl ? (
+                    <Box
+                      sx={{
+                        position: "relative",
+                        width: 40,
+                        height: 56,
+                        overflow: "hidden",
+                        border: "1px solid",
+                        borderColor: "divider",
+                        bgcolor: "background.default",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Image
+                        src={item.posterUrl}
+                        alt=""
+                        fill
+                        sizes="40px"
+                        style={{ objectFit: "cover" }}
+                      />
+                    </Box>
+                  ) : (
+                    item.icon
+                  )}
                 </Box>
                 <Box sx={{ minWidth: 0 }}>
                   <Typography

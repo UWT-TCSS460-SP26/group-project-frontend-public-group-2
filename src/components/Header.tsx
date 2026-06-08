@@ -358,7 +358,11 @@ export function Header() {
         </MenuItem>
       </Menu>
 
-      <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
+      <CommandPalette
+        open={commandOpen}
+        onClose={() => setCommandOpen(false)}
+        isAuthenticated={isAuthenticated}
+      />
     </AppBar>
   );
 }
