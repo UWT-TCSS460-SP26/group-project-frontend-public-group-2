@@ -1,0 +1,13 @@
+.cardLink {
+  color: inherit;
+  display: block;
+  text-decoration: none;
+}
+
+.cardLink:focus-visible {
+  outline-offset: 5px;
+}
+
+.posterImage {
+  object-fit: cover;
+}

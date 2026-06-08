@@ -77,6 +77,7 @@ src/lib/actions/
 ```
 
 All actions return `ActionResult<T>`:
+
 ```tsx
 import { createRating } from "@/lib/actions/ratings";
 
@@ -104,7 +105,19 @@ After a successful write in a client component, call `useRouter().refresh()` to 
 - No hardcoded hex colors — reference `theme.palette.*` via `sx`
 - No Tailwind classes (Tailwind is installed but not actively used)
 - Buttons: no shadows, no uppercase transform (already set in theme overrides)
-- Fonts: Inter (body) and Fraunces (all `h1`–`h6`) are loaded via `next/font` and exposed as CSS vars `--font-inter` / `--font-fraunces`
+- Fonts: Inter (body), Fraunces (`h1`–`h6` / display), and IBM Plex Mono (meta — years, runtime, genres) via `next/font`, exposed as `--font-inter` / `--font-fraunces` / `--font-mono`. Use `<MetaText>` for mono meta.
+
+**Identity — "Repertory, evolved":** warm editorial cinema. **Light (gallery) is the default**, dark (cinema) via the header toggle — both ship through MUI's `colorSchemes` CSS-variables API (`colorSchemeSelector: "class"`, no-flash via `InitColorSchemeScript`). Brand accent is **deep emerald** (`primary`); title pages can additionally adopt the poster's color. Subtle film grain (`<GrainOverlay>`), full-bleed imagery with dark scrims. The live **`/styleguide`** page (dev-only) shows every token + component in both modes.
+
+### Motion (60fps contract)
+
+All animation is **`transform` + `opacity` only** — never `width`/`height`/`top`/`left`/`margin` (those trigger layout/jank). Drive any JS animation with `requestAnimationFrame`; use `will-change` only while animating, then drop it. Target ~16.6ms/frame; if a transition stutters on a throttled CPU, ship it static.
+
+Keyframes live in **`globals.css`** (e.g. `repertory-marquee`, `reveal-up`) — defining them globally rather than inline in `sx` avoids emotion mis-scoping the animation name (that bug silently froze the marquee). **Reduced motion is honored** (a11y requirement): `globals.css` carries a `prefers-reduced-motion: reduce` block that neutralizes animations/transitions, freezes the marquee track, and disables the poster view-transition. Keyframes themselves stay gentle and pausable (the marquee pauses on hover/focus) for everyone else.
+
+Building blocks: `<Reveal index={i}>` (staggered grid/rail entrance), `CardSkeleton`/`RailSkeleton` (transform shimmer), the `Marquee` ticker, the `app/template.tsx` route cross-fade, and `viewTransitionName()` (`@/lib/view-transition`) for the shared-element poster morph (RU-11; needs `experimental.viewTransition`, already set in `next.config.ts`).
+
+**Banned:** auto-playing carousels, parallax for its own sake, long/bouncy easings, anything that animates layout or blocks interaction.
 
 ### Component conventions
 
@@ -112,13 +125,35 @@ All shared components live in `src/components/` and are re-exported from the bar
 
 ```tsx
 import {
-  Header, Hero, PopularGrid, PageContainer, PageTitle,
-  MovieCard, EmptyState, LoadingState, ErrorState,
-  SignInPrompt, ConfirmDialog, RatingControl,
+  Header,
+  Footer,
+  PageContainer,
+  PageTitle,
+  SectionHeading,
+  MovieCard,
+  Rail,
+  Marquee,
+  Numeral,
+  StatBadge,
+  GenreChip,
+  MetaText,
+  CardSkeleton,
+  RailSkeleton,
+  Reveal,
+  ButtonLink,
+  WatchlistButton,
+  ThemeToggle,
+  GrainOverlay,
+  EmptyState,
+  LoadingState,
+  ErrorState,
+  SignInPrompt,
+  ConfirmDialog,
+  RatingControl,
 } from "@/components";
 ```
 
-`<Header />` is rendered **once** in `src/app/layout.tsx` — do not add it inside individual pages.
+`<Header />` and `<Footer />` are rendered **once** in `src/app/layout.tsx` — don't add them inside pages. The full component gallery (both modes) is the dev-only **`/styleguide`** page. Note: passing `component={Link}` (a function) to any MUI client component (`Button`, `Box`, `MenuItem`, …) from a **Server Component** throws "Functions cannot be passed directly to Client Components" and **aborts the static prerender of the whole production build** (it surfaced as a `/_not-found` export error). Either use `<ButtonLink href=…>` (a thin `"use client"` wrapper) or make the host component a client component (`"use client"`).
 
 Every page should be wrapped in `<PageContainer>` (handles max-width and responsive padding).
 
@@ -132,19 +167,28 @@ Do not create new card styles — extend `<MovieCard>` instead.
 
 **Signed-out gating:** render `<SignInPrompt action="rate this title" />` (not a disabled button) when a write affordance is shown to a signed-out visitor.
 
+**Watchlist:** device-local via `useWatchlist()` (`@/lib/watchlist` — `items/has/toggle/remove/count`, localStorage + cross-tab, SSR-safe, no provider). `<WatchlistButton item={...}/>` is already on `MovieCard`; the `/watchlist` page lists saved titles.
+
 ### TypeScript types (`src/types/media.ts`)
 
 Types are reconciled against Group 1's authoritative OpenAPI spec (`api-1.yaml`). Key exports:
 
-| Export | Purpose |
-| --- | --- |
-| `Movie` | One search/popular result item (`poster_path`, `release_date`, etc.) |
-| `SearchResults` | Paginated wrapper from `/movies/search` |
-| `TMDB_IMG_BASE` | CDN base — prepend to `poster_path` for a full image URL |
-| `Rating`, `Review` | Write response shapes (Sprint 7) |
-| `RatingInput`, `ReviewInput` | Request body shapes for POST actions |
-| `ActionResult<T>` | `{ ok: true; data: T } \| { ok: false; error: ActionError }` — returned by all Server Actions |
-| `MediaType` | `"movie" \| "tv"` |
+| Export                       | Purpose                                                                                                                                             |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Movie`                      | Shared item shape for movie AND TV results. Movies have `release_date`; TV shows have `first_air_date` — both optional, check whichever is present. |
+| `SearchResults`              | Paginated wrapper from `/movies/search`                                                                                                             |
+| `PopularResponse`            | Paginated wrapper from `/movies/popular` or `/tv/popular`                                                                                           |
+| `TMDB_IMG_BASE`              | CDN base — prepend to `poster_path` for a full image URL                                                                                            |
+| `Rating`, `Review`           | Write response shapes (Sprint 7)                                                                                                                    |
+| `RatingInput`, `ReviewInput` | Request body shapes for POST actions                                                                                                                |
+| `ActionResult<T>`            | `{ ok: true; data: T } \| { ok: false; error: ActionError }` — returned by all Server Actions                                                       |
+| `MediaType`                  | `"movie" \| "tv"`                                                                                                                                   |
+
+Pages that fetch live data should opt out of static caching:
+
+```tsx
+export const dynamic = "force-dynamic";
+```
 
 ### Provider tree
 

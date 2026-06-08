@@ -2,20 +2,26 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { MetaText } from "@/components/MetaText";
+import { Reveal } from "@/components/Reveal";
 import { SectionHeading } from "@/components/SectionHeading";
+import { StatBadge } from "@/components/StatBadge";
 import { deleteRating, updateRating } from "@/lib/actions/ratings";
 import { deleteReview, updateReview } from "@/lib/actions/reviews";
+import { formatDisplayDate } from "@/lib/format-date";
 import { titleKey, type TitleSummaryByKey } from "@/lib/title-summary";
+import { titleHref } from "@/lib/title-route";
 import type { EnrichedRatedItem, MediaType, Review } from "@/types/media";
 import { TMDB_IMG_BASE } from "@/types/media";
 
@@ -25,12 +31,14 @@ import { TMDB_IMG_BASE } from "@/types/media";
 function resolveSummary(
   mediaType: MediaType,
   tmdbId: string,
-  enriched: { title?: string; poster_path?: string | null } | null | undefined,
+  enriched: { title?: string; name?: string; poster_path?: string | null } | null | undefined,
   titles: TitleSummaryByKey,
 ): { title: string; posterPath: string | null; releaseYear?: number; resolved: boolean } {
   const enrichedTitle =
     typeof enriched?.title === "string" && enriched.title.trim().length > 0
       ? enriched.title.trim()
+      : typeof enriched?.name === "string" && enriched.name.trim().length > 0
+        ? enriched.name.trim()
       : undefined;
   const enrichedPoster =
     typeof enriched?.poster_path === "string" ? enriched.poster_path : null;
@@ -64,22 +72,26 @@ function mediaLabel(mediaType: string) {
   return mediaType === "tv" ? "TV show" : "Movie";
 }
 
-function formatDate(value?: string) {
-  if (!value) return undefined;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
-
 function posterUrl(path?: string | null) {
   if (!path) return undefined;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   return `${TMDB_IMG_BASE}${path}`;
 }
+
+// Shared editorial row card — sharp hairline frame on paper that lifts to the
+// emerald brand border on hover. Transform-only motion (60fps), reduced-motion safe.
+const rowCardSx = {
+  p: { xs: 2, md: 2.5 },
+  border: "1px solid",
+  borderColor: "divider",
+  bgcolor: "background.paper",
+  transition: "border-color 200ms ease, transform 200ms ease",
+  "&:hover": { borderColor: "primary.main", transform: "translateY(-2px)" },
+  "@media (prefers-reduced-motion: reduce)": {
+    transition: "none",
+    "&:hover": { transform: "none" },
+  },
+} as const;
 
 function SectionTitle({
   id,
@@ -94,21 +106,84 @@ function SectionTitle({
     <Box
       sx={{
         display: "flex",
-        alignItems: "center",
+        alignItems: "baseline",
         justifyContent: "space-between",
         gap: 2,
-        mb: 2,
+        mb: 2.5,
+        pb: 1.5,
+        borderBottom: "1px solid",
+        borderColor: "divider",
       }}
     >
       <SectionHeading id={id} mb={0}>
         {title}
       </SectionHeading>
       {count !== undefined && (
-        <Chip
-          label={`${count} ${count === 1 ? "item" : "items"}`}
-          size="small"
-          variant="outlined"
+        <StatBadge>{`${count} ${count === 1 ? "item" : "items"}`}</StatBadge>
+      )}
+    </Box>
+  );
+}
+
+/**
+ * Optimized poster thumbnail (next/image) linking to the title page. Shares the
+ * gallery framing used by <MovieCard>: hairline-bordered 2:3 frame on the paper
+ * surface, with an italic-serif "no poster" fallback. `alt` is always present.
+ *
+ * The poster is a redundant link to the same title page as the adjacent text
+ * link, so it's hidden from keyboard/AT (`tabIndex=-1` + `aria-hidden`) to avoid
+ * a duplicate tab stop and a double announcement — it stays clickable by mouse.
+ */
+function RowPoster({
+  href,
+  imageUrl,
+  title,
+}: {
+  href: string;
+  imageUrl?: string;
+  title: string;
+}) {
+  return (
+    <Box
+      component={Link}
+      href={href}
+      tabIndex={-1}
+      aria-hidden
+      sx={{
+        position: "relative",
+        display: "block",
+        width: "100%",
+        aspectRatio: "2 / 3",
+        border: "1px solid",
+        borderColor: "divider",
+        bgcolor: "background.paper",
+        overflow: "hidden",
+      }}
+    >
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt={`${title} poster`}
+          fill
+          sizes="(max-width: 600px) 72px, 88px"
+          className="image-cover"
         />
+      ) : (
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "text.secondary",
+            fontFamily: "var(--font-fraunces), Georgia, serif",
+            fontStyle: "italic",
+            fontSize: "0.8rem",
+          }}
+        >
+          no poster
+        </Box>
       )}
     </Box>
   );
@@ -184,15 +259,7 @@ function RatingRow({
   }
 
   return (
-    <Box
-      sx={{
-        p: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 1,
-        bgcolor: "background.paper",
-      }}
-    >
+    <Box sx={rowCardSx}>
       <Box
         sx={{
           display: "grid",
@@ -201,54 +268,46 @@ function RatingRow({
           alignItems: "center",
         }}
       >
-        <Box
-          sx={{
-            width: "100%",
-            aspectRatio: "2 / 3",
-            borderRadius: 1,
-            border: "1px solid",
-            borderColor: "divider",
-            bgcolor: "background.default",
-            backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {!imageUrl && (
-            <Typography sx={{ color: "text.secondary", fontSize: "0.75rem" }}>
-              no poster
-            </Typography>
-          )}
-        </Box>
+        <RowPoster
+          href={titleHref(item.mediaType, item.tmdbId)}
+          imageUrl={imageUrl}
+          title={title}
+        />
 
         <Box sx={{ minWidth: 0 }}>
           <Typography
             component={Link}
-            href={`/title/${item.tmdbId}`}
+            href={titleHref(item.mediaType, item.tmdbId)}
             sx={{
               color: "inherit",
               textDecoration: "none",
-              fontWeight: 700,
+              fontWeight: 600,
               "&:hover": { color: "primary.main" },
             }}
           >
             {title}
           </Typography>
-          <Typography sx={{ mt: 0.5, color: "text.secondary", fontSize: "0.9rem" }}>
-            {mediaLabel(item.mediaType)}
-            {summary.releaseYear ? ` · ${summary.releaseYear}` : ""}
-            {!summary.resolved ? " · details unavailable" : ""}
-          </Typography>
+          <MetaText
+            sx={{ display: "block", mt: 0.75, textTransform: "uppercase" }}
+          >
+            {[
+              mediaLabel(item.mediaType),
+              summary.releaseYear ? String(summary.releaseYear) : undefined,
+              !summary.resolved ? "details unavailable" : undefined,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </MetaText>
         </Box>
 
         <Box
           sx={{
             gridColumn: { xs: "2", sm: "auto" },
             justifySelf: { xs: "start", sm: "end" },
-            textAlign: { xs: "left", sm: "right" },
+            display: "flex",
+            flexDirection: "column",
+            alignItems: { xs: "flex-start", sm: "flex-end" },
+            gap: 0.5,
           }}
         >
           {editing ? (
@@ -263,12 +322,30 @@ function RatingRow({
             />
           ) : (
             <>
-              <Typography sx={{ fontWeight: 700, fontSize: "1.25rem" }}>
-                {item.score}/10
-              </Typography>
-              <Typography sx={{ color: "text.secondary", fontSize: "0.8rem" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <StarRoundedIcon
+                  sx={{ fontSize: { xs: 20, md: 22 }, color: "primary.main" }}
+                />
+                <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.3 }}>
+                  <Typography
+                    component="span"
+                    sx={{
+                      fontFamily: "var(--font-fraunces), Georgia, serif",
+                      fontWeight: 500,
+                      lineHeight: 1,
+                      letterSpacing: "-0.02em",
+                      fontSize: { xs: "1.9rem", md: "2.2rem" },
+                      color: "primary.main",
+                    }}
+                  >
+                    {item.score}
+                  </Typography>
+                  <MetaText sx={{ color: "text.secondary" }}>/10</MetaText>
+                </Box>
+              </Box>
+              <MetaText sx={{ textTransform: "uppercase", mt: 0.25 }}>
                 your rating
-              </Typography>
+              </MetaText>
             </>
           )}
         </Box>
@@ -349,7 +426,7 @@ function ReviewRow({
   const [description, setDescription] = useState(review.description ?? "");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const date = formatDate(review.updatedAt ?? review.createdAt);
+  const date = formatDisplayDate(review.updatedAt ?? review.createdAt);
   const summary = resolveSummary(review.mediaType, review.tmdbId, null, titles);
   const imageUrl = posterUrl(summary.posterPath);
   // Group 1 stamps "Review of {tmdbId}" when the user posts with no title; we
@@ -405,15 +482,7 @@ function ReviewRow({
   }
 
   return (
-    <Box
-      sx={{
-        p: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 1,
-        bgcolor: "background.paper",
-      }}
-    >
+    <Box sx={rowCardSx}>
       {editing ? (
         <Box sx={{ display: "grid", gap: 2 }}>
           <TextField
@@ -439,37 +508,20 @@ function ReviewRow({
             alignItems: "start",
           }}
         >
-          <Box
-            sx={{
-              width: "100%",
-              aspectRatio: "2 / 3",
-              borderRadius: 1,
-              border: "1px solid",
-              borderColor: "divider",
-              bgcolor: "background.default",
-              backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {!imageUrl && (
-              <Typography sx={{ color: "text.secondary", fontSize: "0.75rem" }}>
-                no poster
-              </Typography>
-            )}
-          </Box>
+          <RowPoster
+            href={titleHref(review.mediaType, review.tmdbId)}
+            imageUrl={imageUrl}
+            title={displayTitle}
+          />
 
           <Box sx={{ minWidth: 0 }}>
             <Typography
               component={Link}
-              href={`/title/${review.tmdbId}`}
+              href={titleHref(review.mediaType, review.tmdbId)}
               sx={{
                 color: "inherit",
                 textDecoration: "none",
-                fontWeight: 700,
+                fontWeight: 600,
                 "&:hover": { color: "primary.main" },
               }}
             >
@@ -480,7 +532,8 @@ function ReviewRow({
                 sx={{
                   mt: 0.5,
                   color: "text.secondary",
-                  fontSize: "0.9rem",
+                  fontFamily: "var(--font-fraunces), Georgia, serif",
+                  fontSize: "0.95rem",
                   fontStyle: "italic",
                 }}
               >
@@ -500,12 +553,16 @@ function ReviewRow({
             >
               {review.description || "No review text provided."}
             </Typography>
-            <Typography sx={{ mt: 1, color: "text.secondary", fontSize: "0.85rem" }}>
-              {mediaLabel(review.mediaType)}
-              {summary.releaseYear ? ` · ${summary.releaseYear}` : ""}
-              {!summary.resolved ? ` · TMDB ${review.tmdbId}` : ""}
-              {date ? ` · ${date}` : ""}
-            </Typography>
+            <MetaText sx={{ display: "block", mt: 1, textTransform: "uppercase" }}>
+              {[
+                mediaLabel(review.mediaType),
+                summary.releaseYear ? String(summary.releaseYear) : undefined,
+                !summary.resolved ? `TMDB ${review.tmdbId}` : undefined,
+                date,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </MetaText>
           </Box>
         </Box>
       )}
@@ -599,8 +656,10 @@ export function ProfileRows({
           <Alert severity="error">{ratingsError}</Alert>
         ) : hasRatings ? (
           <Box sx={{ display: "grid", gap: 2 }}>
-            {ratings.map((item) => (
-              <RatingRow key={item.id} item={item} titles={titles} />
+            {ratings.map((item, i) => (
+              <Reveal key={item.id} index={i}>
+                <RatingRow item={item} titles={titles} />
+              </Reveal>
             ))}
           </Box>
         ) : (
@@ -624,8 +683,10 @@ export function ProfileRows({
             {/* /reviews/me is intentionally thin. The titles map carries
                 the per-id title + poster we resolved in profile/page.tsx
                 via /movies/{id} and /tv/{id}. */}
-            {reviews.map((review) => (
-              <ReviewRow key={review.id} review={review} titles={titles} />
+            {reviews.map((review, i) => (
+              <Reveal key={review.id} index={i}>
+                <ReviewRow review={review} titles={titles} />
+              </Reveal>
             ))}
           </Box>
         ) : (

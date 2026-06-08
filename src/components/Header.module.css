@@ -1,0 +1,10 @@
+.brandLink,
+.navLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.brandLink:focus-visible,
+.navLink:focus-visible {
+  border-radius: 2px;
+}

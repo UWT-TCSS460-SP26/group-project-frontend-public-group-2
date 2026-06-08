@@ -1,7 +1,3 @@
-:root {
-  color-scheme: dark;
-}
-
 html,
 body {
   height: 100%;
@@ -9,6 +5,114 @@ body {
 
 body {
   margin: 0;
-  background: #0f0e0c;
-  color: #ede7dc;
+}
+
+.image-cover {
+  object-fit: cover;
+}
+
+:focus-visible {
+  outline: 2px solid var(--mui-palette-primary-main);
+  outline-offset: 3px;
+}
+
+/* MUI's CssBaseline + the colorSchemes CSS variables drive `color-scheme`,
+   background, and text color per mode — no hardcoded theme colors here. */
+
+/* Skip-to-content link: visually hidden until focused (keyboard accessibility). */
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 3000;
+  padding: 10px 16px;
+  border-radius: 6px;
+  background-color: var(--mui-palette-primary-main);
+  color: var(--mui-palette-primary-contrastText);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform 160ms ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Marquee ticker scroll (Marquee component). Global so emotion can't mis-scope it. */
+@keyframes repertory-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .marquee-track {
+    animation: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  [data-title-poster],
+  [data-title-poster-detail] {
+    view-transition-name: none !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* Staggered grid/rail entrance (Reveal component). */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hero masthead settle — the featured backdrop fades up from black and eases out
+   of a slight zoom, so the image "arrives" instead of snapping in. Transform +
+   opacity only (GPU); runs once. Reduced-motion users get the end state instantly
+   via the global reduce reset above. (Hero.module.css references this by name.) */
+@keyframes hero-image-in {
+  from {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Ken Burns — a slow, gentle push on the featured backdrop so the still has life.
+   Kept shallow (≤6% zoom) so the full-res backdrop stays crisp. Transform only
+   (GPU); alternates so it never snaps back. */
+@keyframes hero-kenburns {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.06) translate3d(-1%, -1%, 0);
+  }
 }

@@ -4,6 +4,7 @@ import { EmptyState, PageContainer, PageTitle, SignInPrompt } from "@/components
 import { getMyRatings } from "@/lib/actions/ratings";
 import { getMyReviews } from "@/lib/actions/reviews";
 import { enrichTitles } from "@/lib/enrich-titles";
+import { ProfileHeader } from "./ProfileHeader";
 import { ProfileRows } from "./ProfileRows";
 
 export const metadata: Metadata = { title: "Profile - Group 2" };
@@ -36,6 +37,10 @@ export default async function ProfilePage() {
   const reviews = reviewsResult.ok ? reviewsResult.data.results : [];
   const hasRatings = ratings.length > 0;
   const hasReviews = reviews.length > 0;
+  const avgScore = hasRatings
+    ? ratings.reduce((sum, r) => sum + r.score, 0) / ratings.length
+    : null;
+  const email = session?.user?.email ?? "";
 
   // Group 1's bulk enrichment is unreliable and /reviews/me is never enriched,
   // so we resolve titles + posters per row from the per-item read routes (deduped,
@@ -48,9 +53,11 @@ export default async function ProfilePage() {
 
   return (
     <PageContainer>
-      <PageTitle
-        title="Profile"
-        subtitle="Everything you have rated and reviewed."
+      <ProfileHeader
+        email={email}
+        rated={ratings.length}
+        reviewed={reviews.length}
+        avgScore={avgScore}
       />
 
       {!hasRatings && !hasReviews && ratingsResult.ok && reviewsResult.ok ? (

@@ -1,34 +1,67 @@
 import type { Metadata } from "next";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import {
-  PageContainer,
-  PageTitle,
-  MovieCard,
+  ButtonLink,
   EmptyState,
   ErrorState,
+  MovieCard,
+  PageContainer,
+  PageTitle,
+  Reveal,
 } from "@/components";
 import { fetchGroupOneApi } from "@/lib/api";
-import type { SearchResults } from "@/types/media";
+import { filterAndSortSearchResults } from "@/lib/search-filter";
+import { enrichSearchMetadata } from "@/lib/search-metadata";
+import type { MediaType, SearchResults } from "@/types/media";
+import { SearchFilters } from "./SearchFilters";
 
 export const metadata: Metadata = { title: "Search — Group 2" };
+
+type SearchType = "movies" | "tv";
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    type?: string;
+    genre?: string;
+    yearFrom?: string;
+    yearTo?: string;
+    minRating?: string;
+    sort?: string;
+  }>;
 }) {
-  const { q } = await searchParams;
+  const {
+    q,
+    type: rawType = "movies",
+    genre = "",
+    yearFrom = "",
+    yearTo = "",
+    minRating = "",
+    sort = "relevance",
+  } = await searchParams;
+
+  const searchType: SearchType = rawType === "tv" ? "tv" : "movies";
   const trimmedQ = q?.trim() ?? "";
+  const mediaType: MediaType = searchType === "tv" ? "tv" : "movie";
+  const endpoint = searchType === "tv" ? "/tv/search" : "/movies/search";
+
+  const parsedYearFrom = yearFrom ? parseInt(yearFrom, 10) || null : null;
+  const parsedYearTo = yearTo ? parseInt(yearTo, 10) || null : null;
+  const parsedMinRating = minRating ? parseInt(minRating, 10) || null : null;
 
   let data: SearchResults | null = null;
   let fetchError: string | null = null;
 
   if (trimmedQ) {
     try {
-      // Group 1's search param is `query`; our URL param is `q` — map here.
-      data = await fetchGroupOneApi<SearchResults>("/movies/search", {
+      data = await fetchGroupOneApi<SearchResults>(endpoint, {
         query: { query: trimmedQ },
       });
     } catch (err) {
@@ -37,41 +70,163 @@ export default async function SearchPage({
     }
   }
 
+  const rawResults = data?.results ?? [];
+  const needsMetadata = Boolean(genre) || parsedMinRating !== null;
+  const metadataResult =
+    needsMetadata && rawResults.length > 0
+      ? await enrichSearchMetadata(rawResults, mediaType)
+      : { items: rawResults, failedCount: 0 };
+  const metadataFailureCount = metadataResult.failedCount;
+
+  const filteredResults = filterAndSortSearchResults(metadataResult.items, {
+    genre,
+    yearFrom: parsedYearFrom,
+    yearTo: parsedYearTo,
+    minRating: parsedMinRating,
+    sort,
+  });
+
+  const hasActiveFilters =
+    !!genre ||
+    !!yearFrom ||
+    !!yearTo ||
+    !!minRating ||
+    (!!sort && sort !== "relevance");
+  const filteredByFilters =
+    rawResults.length > 0 && filteredResults.length === 0;
+
+  const itemLabel = searchType === "tv" ? "TV show" : "movie";
   const subtitle = trimmedQ
     ? data
-      ? `${data.results.length} result${data.results.length !== 1 ? "s" : ""} for "${trimmedQ}"`
+      ? `${filteredResults.length} ${itemLabel}${filteredResults.length !== 1 ? "s" : ""} for "${trimmedQ}"${hasActiveFilters ? " · filtered" : ""}`
       : undefined
     : undefined;
+
+  // Tab toggle preserves all active filters when switching Movies ↔ TV.
+  function tabHref(type: SearchType) {
+    const p = new URLSearchParams();
+    if (trimmedQ) p.set("q", trimmedQ);
+    p.set("type", type);
+    if (genre) p.set("genre", genre);
+    if (yearFrom) p.set("yearFrom", yearFrom);
+    if (yearTo) p.set("yearTo", yearTo);
+    if (minRating) p.set("minRating", minRating);
+    if (sort && sort !== "relevance") p.set("sort", sort);
+    return `/search?${p.toString()}`;
+  }
 
   return (
     <PageContainer>
       <PageTitle title="Search" subtitle={subtitle} />
 
-      {/* GET form — submits to /search?q=<value>, no JS required */}
+      {/* Search console — media toggle, query, and filters in one panel so the
+          controls read as a single, deliberate surface (premium + organized). */}
       <Box
-        component="form"
-        method="GET"
-        action="/search"
         sx={{
-          display: "flex",
-          gap: 2,
-          mb: { xs: 4, md: 6 },
-          maxWidth: 600,
+          border: "1px solid",
+          borderColor: "divider",
+          bgcolor: "background.paper",
+          p: { xs: 2, md: 2.5 },
+          mb: { xs: 4, md: 5 },
         }}
       >
-        <TextField
-          name="q"
-          defaultValue={trimmedQ}
-          placeholder="Search movies…"
-          size="small"
-          fullWidth
-          autoComplete="off"
-          slotProps={{ htmlInput: { "aria-label": "Search query" } }}
-        />
-        <Button type="submit" variant="contained" color="primary">
-          Search
-        </Button>
+        {/* Top row: media toggle + search field, aligned and same height */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            gap: 2,
+            alignItems: { md: "center" },
+          }}
+        >
+          {/* Movies / TV toggle — links so they work without JS */}
+          <Box sx={{ display: "flex", flexShrink: 0 }}>
+            <ButtonLink
+              href={tabHref("movies")}
+              variant={searchType === "movies" ? "contained" : "outlined"}
+              color="primary"
+              sx={{ borderRadius: 0 }}
+            >
+              Movies
+            </ButtonLink>
+            <ButtonLink
+              href={tabHref("tv")}
+              variant={searchType === "tv" ? "contained" : "outlined"}
+              color="primary"
+              sx={{ borderRadius: 0, ml: "-1px" }}
+            >
+              TV Shows
+            </ButtonLink>
+          </Box>
+
+          {/* Search form — GET submission updates the URL; works without JS */}
+          <Box
+            component="form"
+            method="GET"
+            action="/search"
+            sx={{ display: "flex", gap: 1.5, flex: 1, width: "100%" }}
+          >
+            {/* Preserve the active tab when the form submits */}
+            <input type="hidden" name="type" value={searchType} />
+            {/* Preserve active filters when the form submits */}
+            {genre && <input type="hidden" name="genre" value={genre} />}
+            {yearFrom && <input type="hidden" name="yearFrom" value={yearFrom} />}
+            {yearTo && <input type="hidden" name="yearTo" value={yearTo} />}
+            {minRating && (
+              <input type="hidden" name="minRating" value={minRating} />
+            )}
+            {sort && sort !== "relevance" && (
+              <input type="hidden" name="sort" value={sort} />
+            )}
+            <TextField
+              name="q"
+              defaultValue={trimmedQ}
+              placeholder={
+                searchType === "tv" ? "Search TV shows…" : "Search movies…"
+              }
+              fullWidth
+              autoComplete="off"
+              slotProps={{ htmlInput: { "aria-label": "Search query" } }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              sx={{ flexShrink: 0, px: 3 }}
+            >
+              Search
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Filter + sort — nested under a hairline within the same panel */}
+        <Box
+          sx={{
+            mt: { xs: 2, md: 2.5 },
+            pt: { xs: 2, md: 2.5 },
+            borderTop: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <SearchFilters
+            q={trimmedQ}
+            searchType={searchType}
+            genre={genre}
+            yearFrom={yearFrom}
+            yearTo={yearTo}
+            minRating={minRating}
+            sort={sort}
+          />
+        </Box>
       </Box>
+
+      {metadataFailureCount > 0 && (
+        <Alert severity="warning" role="status" sx={{ mb: 3 }}>
+          {metadataFailureCount} search{" "}
+          {metadataFailureCount === 1 ? "result was" : "results were"} omitted
+          because the required filter metadata could not be loaded.
+        </Alert>
+      )}
 
       {/* Result states */}
       {fetchError ? (
@@ -79,9 +234,18 @@ export default async function SearchPage({
       ) : !trimmedQ ? (
         <EmptyState
           message="What are you looking for?"
-          detail="Enter a title, keyword, or actor above."
+          detail={
+            searchType === "tv"
+              ? "Enter a show title, keyword, or actor above."
+              : "Enter a movie title, keyword, or actor above."
+          }
         />
-      ) : data && data.results.length > 0 ? (
+      ) : filteredByFilters ? (
+        <EmptyState
+          message="No matches for your filters."
+          detail="Try widening the year range or clearing the filters above."
+        />
+      ) : filteredResults.length > 0 ? (
         <Box
           sx={{
             display: "grid",
@@ -89,12 +253,19 @@ export default async function SearchPage({
               xs: "repeat(2, 1fr)",
               sm: "repeat(3, 1fr)",
               md: "repeat(5, 1fr)",
+              lg: "repeat(6, 1fr)",
             },
-            gap: 3,
+            gap: { xs: 2, md: 3 },
           }}
         >
-          {data.results.map((movie) => (
-            <MovieCard key={movie.id} movie={movie} />
+          {filteredResults.map((item, i) => (
+            <Reveal key={item.id} index={i}>
+              <MovieCard
+                movie={item}
+                mediaType={mediaType}
+                metaSuffix={searchType === "tv" ? "TV" : undefined}
+              />
+            </Reveal>
           ))}
         </Box>
       ) : (

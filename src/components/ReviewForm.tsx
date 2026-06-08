@@ -14,6 +14,7 @@ import {
   updateReview,
 } from "@/lib/actions/reviews";
 import { findMyReviewForTitle } from "@/lib/find-my-review";
+import { titleAccentButtonSx, titleAccentTextFieldSx } from "@/lib/title-color";
 import type { MediaType, Review } from "@/types/media";
 import { SignInPrompt } from "./SignInPrompt";
 import { useReviewsContextOptional } from "./reviews-context";
@@ -22,6 +23,8 @@ export interface ReviewFormProps {
   /** TMDB id of the title being reviewed (the detail route's [id]). */
   tmdbId: string;
   mediaType: MediaType;
+  /** When true, the field focus + submit CTA read `--title-accent` (detail page). */
+  useTitleAccent?: boolean;
 }
 
 type FormMode = "create" | "edit";
@@ -61,7 +64,11 @@ function validateBody(body: string): string | undefined {
  * After a successful create/update, calls `router.refresh()` so the detail page
  * refetches the enriched review list.
  */
-export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
+export function ReviewForm({
+  tmdbId,
+  mediaType,
+  useTitleAccent = false,
+}: ReviewFormProps) {
   const router = useRouter();
   const { status: sessionStatus } = useSession();
   const reviewsContext = useReviewsContextOptional();
@@ -111,9 +118,15 @@ export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
       );
       successRef.current?.focus();
       if (options?.scroll) {
+        const reducedMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        ).matches;
         document
           .getElementById("title-review-form")
-          ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          ?.scrollIntoView({
+            behavior: reducedMotion ? "auto" : "smooth",
+            block: "nearest",
+          });
       }
     },
     [],
@@ -342,6 +355,7 @@ export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
         onChange={(event) => setTitle(event.target.value)}
         disabled={submitting}
         fullWidth
+        sx={useTitleAccent ? titleAccentTextFieldSx : undefined}
         error={Boolean(fieldErrors.title)}
         helperText={fieldErrors.title}
         slotProps={{
@@ -365,6 +379,7 @@ export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
         fullWidth
         multiline
         minRows={4}
+        sx={useTitleAccent ? titleAccentTextFieldSx : undefined}
         error={Boolean(fieldErrors.body)}
         helperText={
           fieldErrors.body ??
@@ -386,6 +401,7 @@ export function ReviewForm({ tmdbId, mediaType }: ReviewFormProps) {
           variant="contained"
           color="primary"
           disabled={submitting}
+          sx={useTitleAccent ? titleAccentButtonSx : undefined}
           startIcon={
             submitting ? (
               <CircularProgress size={18} color="inherit" aria-hidden />
