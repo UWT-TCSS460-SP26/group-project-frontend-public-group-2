@@ -16,7 +16,7 @@ const footerLinks = [
 
 /**
  * Production-style site footer (contentinfo landmark): brand + tagline, a few links,
- * and a copyright line. The data/auth/API credits live on the About page.
+ * and a compact copyright line.
  */
 export function Footer() {
   return (
@@ -28,23 +28,32 @@ export function Footer() {
           width: "100%",
           minWidth: 0,
           px: { xs: 2, sm: 3, md: 6 },
-          py: { xs: 5, md: 6 },
+          py: { xs: 3.25, sm: 4, md: 6 },
           display: "flex",
           flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
-          gap: 4,
+          alignItems: { xs: "flex-start", sm: "flex-start" },
+          gap: { xs: 2.5, sm: 4 },
         }}
       >
-        <Box sx={{ maxWidth: 320 }}>
-          <Typography sx={{ fontFamily: "var(--font-fraunces), Georgia, serif", fontSize: "1.25rem", mb: 1 }}>
+        <Box sx={{ maxWidth: 320, width: { xs: "100%", sm: "auto" } }}>
+          <Typography sx={{ fontFamily: "var(--font-fraunces), Georgia, serif", fontSize: { xs: "1.12rem", md: "1.25rem" }, mb: 0.75 }}>
             {SITE_NAME}
           </Typography>
-          <Typography sx={{ color: "text.secondary", fontSize: "0.9rem", lineHeight: 1.6 }}>
+          <Typography sx={{ color: "text.secondary", fontSize: { xs: "0.88rem", md: "0.9rem" }, lineHeight: 1.6 }}>
             {SITE_DESCRIPTION}
           </Typography>
         </Box>
 
-        <Box component="nav" sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+        <Box
+          component="nav"
+          sx={{
+            width: { xs: "100%", sm: "auto" },
+            display: "grid",
+            gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", sm: "1fr" },
+            gap: { xs: 0.85, sm: 1.25 },
+          }}
+        >
           {footerLinks.map((link) => (
             <Box
               key={link.href}
@@ -61,15 +70,10 @@ export function Footer() {
       </Box>
 
       <Box sx={{ borderTop: "1px solid", borderColor: "divider" }}>
-        <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%", px: { xs: 2, sm: 3, md: 6 }, py: 2.5 }}>
-          <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 1.5 }}>
-            <MetaText sx={{ color: "text.secondary" }}>
-              Group 2 · TCSS 460 · Spring 2026
-            </MetaText>
-            <MetaText sx={{ color: "text.secondary" }}>
-              Data: TMDB · Auth: Auth² · API: Group 1
-            </MetaText>
-          </Box>
+        <Box sx={{ maxWidth: 1280, mx: "auto", width: "100%", px: { xs: 2, sm: 3, md: 6 }, py: { xs: 1.5, sm: 2.25 } }}>
+          <MetaText sx={{ color: "text.secondary", display: "block", textAlign: { xs: "center", sm: "left" } }}>
+            © 2026 {SITE_NAME}
+          </MetaText>
         </Box>
       </Box>
     </Box>
