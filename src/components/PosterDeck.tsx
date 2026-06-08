@@ -30,6 +30,7 @@ export interface DeckItem {
 // side of the active one (the rest park off-frame until they wrap around to it).
 const MAX_CARDS = 7;
 const WINDOW = 2;
+const MOBILE_VISIBLE_WINDOW = 3;
 
 // Resting pose maths for the 3D fan (desktop). Each step out from the active card
 // fans the poster further along X, pushes it back in Z, angles it inward, and
@@ -57,13 +58,15 @@ function fanTransform(offset: number): string {
 
 // Mobile = a side-peek carousel pose so the horizontal swipe affordance is visible
 // before the user interacts. The active card sits centred; its neighbours peek in
-// from the sides and drop back slightly.
+// from the sides and drop back slightly. One extra "staged" card stays barely
+// visible off each edge so the next poster is already painted before a swipe.
 function mobileTransform(offset: number): string {
   const abs = Math.abs(offset);
-  const x = offset * 54;
-  const y = abs * 10;
-  const scale = 1 - abs * 0.08;
-  return `translate(-50%, 0) translateX(${x}px) translateY(${y}px) scale(${scale})`;
+  const sign = Math.sign(offset);
+  const x = abs === 0 ? 0 : abs === 1 ? 54 : abs === 2 ? 112 : 176;
+  const y = abs === 0 ? 0 : abs === 1 ? 10 : abs === 2 ? 20 : 28;
+  const scale = abs === 0 ? 1 : abs === 1 ? 0.92 : abs === 2 ? 0.84 : 0.78;
+  return `translate(-50%, 0) translateX(${sign * x}px) translateY(${y}px) scale(${scale})`;
 }
 
 const navBtnSx = {
@@ -234,7 +237,7 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
           const src = posterUrl(item.posterPath);
           const isActive = offset === 0;
           const fanShown = abs <= WINDOW;
-          const mobileShown = abs <= WINDOW;
+          const mobileShown = abs <= MOBILE_VISIBLE_WINDOW;
           const reachable = fanShown;
 
           return (
@@ -272,7 +275,7 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
                 transformOrigin: { xs: "center top", md: "center center" },
                 transform: { xs: mobileTransform(offset), md: fanTransform(offset) },
                 opacity: {
-                  xs: abs === 0 ? 1 : abs === 1 ? 0.6 : abs === 2 ? 0.34 : 0,
+                  xs: abs === 0 ? 1 : abs === 1 ? 0.6 : abs === 2 ? 0.34 : abs === 3 ? 0.12 : 0,
                   md: abs === 0 ? 1 : abs === 1 ? 0.94 : abs === 2 ? 0.74 : 0,
                 },
                 zIndex: { xs: 30 - abs, md: 30 - abs },
@@ -327,7 +330,7 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
                     quality={85}
                     sizes="(max-width: 900px) 268px, 284px"
                     loading="eager"
-                    priority={abs <= 1}
+                    priority={abs <= WINDOW}
                     style={{ objectFit: "cover" }}
                   />
                 ) : (
