@@ -154,9 +154,9 @@ export function Header() {
           </MetaText>
         </Link>
 
-        {/* Desktop nav */}
+        {/* Desktop nav — Profile lives only in the account menu (avatar), not here. */}
         <Box component="nav" aria-label="Primary navigation" sx={{ display: { xs: "none", lg: "flex" }, gap: 2.25, ml: 3 }}>
-          {[...navLinks, ...(isAuthenticated ? [{ label: "Profile", href: "/profile" }] : [])].map((link) => {
+          {navLinks.map((link) => {
             const active =
               pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (
