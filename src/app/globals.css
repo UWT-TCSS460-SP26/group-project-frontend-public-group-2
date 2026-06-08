@@ -105,54 +105,14 @@ body {
   }
 }
 
-/* Spotlight position, registered so it can be smoothly animated/transitioned.
-   The Hero drives these: ambient drift via @keyframes hero-spotlight-drift, and a
-   glide-to-cursor via a CSS transition when the pointer takes over (the JS handler
-   pauses the drift and writes inline values). Without @property these would snap. */
-@property --mx {
-  syntax: "<percentage>";
-  inherits: true;
-  initial-value: 50%;
-}
-
-@property --my {
-  syntax: "<percentage>";
-  inherits: true;
-  initial-value: 42%;
-}
-
-/* Ken Burns — a slow push/drift on the featured backdrop so the still has life.
-   Transform only (GPU); alternates so it never snaps back. */
+/* Ken Burns — a slow, gentle push on the featured backdrop so the still has life.
+   Kept shallow (≤6% zoom) so the full-res backdrop stays crisp. Transform only
+   (GPU); alternates so it never snaps back. */
 @keyframes hero-kenburns {
   from {
-    transform: scale(1.04) translate3d(0, 0, 0);
+    transform: scale(1) translate3d(0, 0, 0);
   }
   to {
-    transform: scale(1.12) translate3d(-1.5%, -1.5%, 0);
-  }
-}
-
-/* Idle "searchlight" — the spotlight wanders the still on a slow, eased loop so
-   the masthead breathes even when no one is moving the cursor. */
-@keyframes hero-spotlight-drift {
-  0% {
-    --mx: 30%;
-    --my: 36%;
-  }
-  25% {
-    --mx: 64%;
-    --my: 30%;
-  }
-  50% {
-    --mx: 72%;
-    --my: 58%;
-  }
-  75% {
-    --mx: 38%;
-    --my: 62%;
-  }
-  100% {
-    --mx: 30%;
-    --my: 36%;
+    transform: scale(1.06) translate3d(-1%, -1%, 0);
   }
 }
