@@ -70,6 +70,15 @@ type LoadResult<T> =
 type UnknownRecord = Record<string, unknown>;
 
 const TMDB_STILL_BASE = "https://image.tmdb.org/t/p/w1280";
+// The hero blows posters up full-bleed behind the spotlight, so w500 looks soft.
+// w780 is the sweet spot — crisp at hero scale without a heavy payload.
+const TMDB_PANEL_BASE = "https://image.tmdb.org/t/p/w780";
+
+/** Higher-resolution poster URL for the full-bleed hero panels. */
+function panelUrl(poster: string | null): string | null {
+  if (!poster) return null;
+  return poster.startsWith("http") ? poster : `${TMDB_PANEL_BASE}${poster}`;
+}
 
 function asRecord(value: unknown): UnknownRecord | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -267,7 +276,7 @@ async function loadFeaturedHero(): Promise<LoadResult<FeaturedHeroData>> {
     }
 
     const panels = movies
-      .map((m) => (m.poster_path ? stillUrl(undefined, m.poster_path) : null))
+      .map((m) => panelUrl(m.poster_path))
       .filter((url): url is string => Boolean(url))
       .slice(0, 6);
 
