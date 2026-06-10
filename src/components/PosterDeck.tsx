@@ -30,7 +30,7 @@ export interface DeckItem {
 // side of the active one (the rest park off-frame until they wrap around to it).
 const MAX_CARDS = 7;
 const WINDOW = 2;
-const MOBILE_VISIBLE_WINDOW = 3;
+const MOBILE_VISIBLE_WINDOW = 2;
 
 // Resting pose maths for the 3D fan (desktop). Each step out from the active card
 // fans the poster further along X, pushes it back in Z, angles it inward, and
@@ -47,6 +47,14 @@ function posterUrl(path: string | null): string | null {
   return path.startsWith("http") ? path : `${TMDB_IMG_BASE}${path}`;
 }
 
+// Shortest signed distance from `active` to card `i` around the ring of `n`.
+// Range is roughly [-n/2, n/2], so the deck wraps in both directions.
+function signedOffset(i: number, active: number, n: number): number {
+  let off = (((i - active) % n) + n) % n;
+  if (off > n / 2) off -= n;
+  return off;
+}
+
 function fanTransform(offset: number): string {
   const abs = Math.abs(offset);
   const x = offset * STEP_X;
@@ -58,16 +66,65 @@ function fanTransform(offset: number): string {
 
 // Mobile = a side-peek carousel pose so the horizontal swipe affordance is visible
 // before the user interacts. The active card sits centred; its neighbours peek in
-// from the sides and drop back slightly. One extra "staged" card stays barely
-// visible off each edge so the next poster is already painted before a swipe.
+// from the sides and drop back slightly. One extra "staged" card sits off each edge
+// at zero opacity so the next poster is already decoded before a swipe — and so the
+// card wrapping across the back of the ring is never seen crossing the deck.
+//
+// These poses are defined as stops keyed by integer distance from centre, then read
+// through `lerpStops` so a *fractional* offset is valid too. That is what lets the
+// deck track a finger 1:1 mid-drag (offset 1.6, say) instead of only snapping
+// between whole positions — the live drag interpolates every pose continuously.
+const MOBILE_X_STOPS = [0, 54, 112, 176];
+const MOBILE_Y_STOPS = [0, 10, 20, 28];
+const MOBILE_SCALE_STOPS = [1, 0.92, 0.84, 0.78];
+const MOBILE_OPACITY_STOPS = [1, 0.6, 0.34, 0];
+
+// Piecewise-linear read of a stop table at a (possibly fractional) absolute offset.
+// At whole offsets it returns the exact designed pose; between them it interpolates.
+function lerpStops(absOffset: number, stops: number[]): number {
+  const last = stops.length - 1;
+  if (absOffset <= 0) return stops[0];
+  if (absOffset >= last) return stops[last];
+  const i = Math.floor(absOffset);
+  return stops[i] + (stops[i + 1] - stops[i]) * (absOffset - i);
+}
+
 function mobileTransform(offset: number): string {
   const abs = Math.abs(offset);
   const sign = Math.sign(offset);
-  const x = abs === 0 ? 0 : abs === 1 ? 54 : abs === 2 ? 112 : 176;
-  const y = abs === 0 ? 0 : abs === 1 ? 10 : abs === 2 ? 20 : 28;
-  const scale = abs === 0 ? 1 : abs === 1 ? 0.92 : abs === 2 ? 0.84 : 0.78;
-  return `translate(-50%, 0) translateX(${sign * x}px) translateY(${y}px) scale(${scale})`;
+  const x = sign * lerpStops(abs, MOBILE_X_STOPS);
+  const y = lerpStops(abs, MOBILE_Y_STOPS);
+  const scale = lerpStops(abs, MOBILE_SCALE_STOPS);
+  // translateZ(0) forces a dedicated GPU compositor layer, so the swipe/drag paints
+  // off the main thread — kills the first-frame "layerization" hitch on phones.
+  return `translate(-50%, 0) translateX(${x}px) translateY(${y}px) scale(${scale}) translateZ(0)`;
 }
+
+function mobileOpacity(offset: number): number {
+  return lerpStops(Math.abs(offset), MOBILE_OPACITY_STOPS);
+}
+
+// Drag feel. A flick projects this many ms of momentum past release; a hard flick
+// may skip at most this many cards. Both deliberately conservative so the gesture
+// stays predictable without on-device tuning.
+const DRAG_VELOCITY_MS = 80;
+const DRAG_MAX_STEP = 2;
+// Below the md breakpoint the deck is the mobile carousel and accepts drag.
+const MOBILE_MAX_WIDTH = 900;
+
+type DragState = {
+  startX: number;
+  startY: number;
+  axis: "undecided" | "horizontal" | "vertical";
+  baseOffsets: number[];
+  stepPx: number;
+  lastX: number;
+  lastT: number;
+  prevX: number;
+  prevT: number;
+  frac: number;
+  raf: number | null;
+};
 
 const navBtnSx = {
   border: "1px solid",
@@ -109,21 +166,30 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
   const deck = items.slice(0, MAX_CARDS);
   const n = deck.length;
   const stageRef = useRef<HTMLDivElement | null>(null);
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const suppressClickRef = useRef(false);
+  // Live DOM handles for each card so the drag can write transforms straight to the
+  // nodes (rAF, off the React render path) for a 60fps finger-follow.
+  const cardNodesRef = useRef<Array<HTMLElement | null>>([]);
+  const dragRef = useRef<DragState | null>(null);
+  const cleanupTimerRef = useRef<number | null>(null);
   // Start near the middle so the fan opens symmetrically.
   const [active, setActive] = useState(() => Math.min(WINDOW, Math.floor(Math.max(n - 1, 0) / 2)));
 
-  // Shortest signed distance around the ring → the deck wraps in both directions.
-  const offsetOf = useCallback(
-    (i: number) => {
-      let off = (((i - active) % n) + n) % n;
-      if (off > n / 2) off -= n;
-      return off;
-    },
-    [active, n],
-  );
+  const offsetOf = useCallback((i: number) => signedOffset(i, active, n), [active, n]);
   const go = useCallback((delta: number) => setActive((cur) => (((cur + delta) % n) + n) % n), [n]);
+
+  // Track the active index from the previous render so we can tell, this render,
+  // which card had to wrap across the back of the ring (offset flipped from one far
+  // edge to the other). That one card must teleport, not glide — see the transition
+  // below. Derived-previous-state pattern: updating during render keeps `prevActive`
+  // correct without reading a ref mid-render.
+  const [seenActive, setSeenActive] = useState(active);
+  const [prevActive, setPrevActive] = useState(active);
+  if (seenActive !== active) {
+    setPrevActive(seenActive);
+    setSeenActive(active);
+  }
+  const seam = Math.floor(n / 2);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -138,33 +204,154 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
     [go],
   );
 
-  const onTouchStart = useCallback((event: React.TouchEvent<HTMLDivElement>) => {
-    const touch = event.touches[0];
-    if (!touch) return;
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  // Paint the current drag frame: every card sits at its resting offset minus the
+  // live drag fraction, so the whole deck slides with the finger. Runs inside rAF
+  // and writes straight to the DOM — no React render per move.
+  const paintDrag = useCallback(() => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    drag.raf = null;
+    for (let i = 0; i < drag.baseOffsets.length; i++) {
+      const node = cardNodesRef.current[i];
+      if (!node) continue;
+      const v = drag.baseOffsets[i] - drag.frac;
+      node.style.transform = mobileTransform(v);
+      node.style.opacity = String(mobileOpacity(v));
+    }
   }, []);
 
-  const onTouchEnd = useCallback(
+  const onTouchStart = useCallback(
     (event: React.TouchEvent<HTMLDivElement>) => {
-      const start = touchStartRef.current;
-      const touch = event.changedTouches[0];
-      touchStartRef.current = null;
-      if (!start || !touch) return;
-
-      const deltaX = touch.clientX - start.x;
-      const deltaY = touch.clientY - start.y;
-      if (Math.abs(deltaX) < 44 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) {
-        return;
+      // A new gesture cancels any pending hand-back-to-React cleanup from the last one.
+      if (cleanupTimerRef.current != null) {
+        window.clearTimeout(cleanupTimerRef.current);
+        cleanupTimerRef.current = null;
       }
-
-      suppressClickRef.current = true;
-      go(deltaX < 0 ? 1 : -1);
-      window.setTimeout(() => {
-        suppressClickRef.current = false;
-      }, 400);
+      const touch = event.touches[0];
+      const stage = stageRef.current;
+      // Drag is the mobile carousel's gesture only; the desktop fan uses buttons/keys.
+      if (!touch || !stage || stage.clientWidth >= MOBILE_MAX_WIDTH || n <= 1) return;
+      dragRef.current = {
+        startX: touch.clientX,
+        startY: touch.clientY,
+        axis: "undecided",
+        baseOffsets: Array.from({ length: n }, (_, i) => signedOffset(i, active, n)),
+        // How far the finger travels to advance one card. Tied to stage width so it
+        // feels the same on any phone; velocity still lets a short flick advance.
+        stepPx: Math.max(110, stage.clientWidth * 0.4),
+        lastX: touch.clientX,
+        lastT: event.timeStamp,
+        prevX: touch.clientX,
+        prevT: event.timeStamp,
+        frac: 0,
+        raf: null,
+      };
     },
-    [go],
+    [active, n],
   );
+
+  const onTouchMove = useCallback(
+    (event: React.TouchEvent<HTMLDivElement>) => {
+      const drag = dragRef.current;
+      const touch = event.touches[0];
+      if (!drag || !touch) return;
+      const dx = touch.clientX - drag.startX;
+      const dy = touch.clientY - drag.startY;
+
+      if (drag.axis === "undecided") {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        // Vertical intent → stay out of the way and let the page scroll.
+        if (Math.abs(dx) <= Math.abs(dy)) {
+          drag.axis = "vertical";
+          return;
+        }
+        drag.axis = "horizontal";
+        // Enter drag mode: freeze the easing so the deck tracks the finger 1:1, and
+        // promote each card to its own layer for the duration of the gesture.
+        for (let i = 0; i < cardNodesRef.current.length; i++) {
+          const node = cardNodesRef.current[i];
+          if (!node) continue;
+          node.style.transition = "none";
+          node.style.willChange = "transform, opacity";
+        }
+      }
+      if (drag.axis !== "horizontal") return;
+
+      drag.prevX = drag.lastX;
+      drag.prevT = drag.lastT;
+      drag.lastX = touch.clientX;
+      drag.lastT = event.timeStamp;
+      drag.frac = -dx / drag.stepPx; // drag left → positive → advance toward next
+      if (drag.raf == null) drag.raf = requestAnimationFrame(paintDrag);
+    },
+    [paintDrag],
+  );
+
+  const onTouchEnd = useCallback(() => {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    if (!drag) return;
+    if (drag.raf != null) cancelAnimationFrame(drag.raf);
+    if (drag.axis !== "horizontal") return; // a tap or a scroll — let the click run
+
+    // Project release velocity into card units, add it to the dragged distance, and
+    // snap to the nearest whole card (a hard flick may skip up to DRAG_MAX_STEP).
+    const dt = Math.max(1, drag.lastT - drag.prevT);
+    const velFrac = ((-(drag.lastX - drag.prevX) / dt) * DRAG_VELOCITY_MS) / drag.stepPx;
+    let step = Math.round(drag.frac + velFrac);
+    step = Math.max(-DRAG_MAX_STEP, Math.min(DRAG_MAX_STEP, step));
+    const target = (((active + step) % n) + n) % n;
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const stage = stageRef.current;
+    const fromFrac = drag.frac;
+    for (let i = 0; i < n; i++) {
+      const node = cardNodesRef.current[i];
+      if (!node) continue;
+      // 1) Pin the exact spot the finger left this card, with no easing…
+      node.style.transition = "none";
+      node.style.transform = mobileTransform(drag.baseOffsets[i] - fromFrac);
+      node.style.opacity = String(mobileOpacity(drag.baseOffsets[i] - fromFrac));
+    }
+    // …force one reflow so the browser registers that start pose…
+    if (stage) void stage.offsetHeight;
+    for (let i = 0; i < n; i++) {
+      const node = cardNodesRef.current[i];
+      if (!node) continue;
+      // 2) …then ease to the settled pose. The card that wraps across the back of
+      // the ring snaps (0ms) instead of sliding the full width of the deck.
+      // Reduced-motion users get an instant snap, matching the global a11y contract.
+      const settled = signedOffset(i, target, n);
+      const wrapped = Math.abs(settled - drag.baseOffsets[i]) > seam;
+      node.style.transition = reduce
+        ? "none"
+        : `transform ${wrapped ? "0ms" : "430ms cubic-bezier(0.22, 0.61, 0.36, 1)"}, opacity 280ms ease-out`;
+      node.style.transform = mobileTransform(settled);
+      node.style.opacity = String(mobileOpacity(settled));
+    }
+
+    // A horizontal gesture must never also fire the poster's navigation click.
+    suppressClickRef.current = true;
+    window.setTimeout(() => {
+      suppressClickRef.current = false;
+    }, 400);
+
+    if (step !== 0) setActive(target);
+
+    // Once settled, hand styling back to React (inline values already equal the
+    // className pose, so this is seamless) so a later resize re-poses correctly.
+    cleanupTimerRef.current = window.setTimeout(() => {
+      cleanupTimerRef.current = null;
+      for (let i = 0; i < cardNodesRef.current.length; i++) {
+        const node = cardNodesRef.current[i];
+        if (!node) continue;
+        node.style.transition = "";
+        node.style.transform = "";
+        node.style.opacity = "";
+        node.style.willChange = "";
+      }
+    }, 480);
+  }, [active, n, seam]);
 
   if (n === 0) return null;
   const current = deck[active];
@@ -194,7 +381,9 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
         tabIndex={0}
         onKeyDown={onKeyDown}
         onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
         sx={{
           position: "relative",
           overflow: "hidden",
@@ -206,6 +395,10 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
           touchAction: { xs: "pan-y", md: "auto" },
           overscrollBehaviorX: "contain",
           outline: "none",
+          // Kill the grey tap-flash and text/image selection so a drag feels native.
+          WebkitTapHighlightColor: "transparent",
+          userSelect: "none",
+          WebkitUserSelect: "none",
           // Soft emerald-tinted halo behind the centre so the active poster lifts
           // off the bone surface — premium depth without a hard shadow on the paper.
           backgroundImage:
@@ -239,10 +432,18 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
           const fanShown = abs <= WINDOW;
           const mobileShown = abs <= MOBILE_VISIBLE_WINDOW;
           const reachable = fanShown;
+          // Did this card just jump across the back of the ring (e.g. +3 → −3)?
+          // A normal step moves an offset by 1; only a wrap changes it by more
+          // than half the ring. Such a card must snap to its new edge instantly
+          // instead of sliding the full width of the deck behind the centre.
+          const wrapped = Math.abs(offset - signedOffset(i, prevActive, n)) > seam;
 
           return (
             <Box
               key={`${item.mediaType}-${item.id}`}
+              ref={(el: HTMLElement | null) => {
+                cardNodesRef.current[i] = el;
+              }}
               component={Link}
               href={item.href}
               aria-label={isActive ? `View ${item.title}` : `Bring ${item.title} to the front`}
@@ -274,18 +475,25 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
                 textDecoration: "none",
                 transformOrigin: { xs: "center top", md: "center center" },
                 transform: { xs: mobileTransform(offset), md: fanTransform(offset) },
+                // The seam (abs 3) is a transparent staging buffer on both layouts:
+                // it stays mounted so the next poster is already decoded, but it is
+                // never painted, so the card that wraps across it can never be seen
+                // crossing the deck.
                 opacity: {
-                  xs: abs === 0 ? 1 : abs === 1 ? 0.6 : abs === 2 ? 0.34 : abs === 3 ? 0.12 : 0,
+                  xs: mobileOpacity(offset),
                   md: abs === 0 ? 1 : abs === 1 ? 0.94 : abs === 2 ? 0.74 : 0,
                 },
                 zIndex: { xs: 30 - abs, md: 30 - abs },
                 pointerEvents: { xs: mobileShown ? "auto" : "none", md: fanShown ? "auto" : "none" },
-                // Mobile: a snappier slide with the opacity settling faster than the
-                // move, so neighbours read as already-present and track the swipe
-                // instead of fading in a beat late. Desktop keeps the longer glide.
+                // The card that wrapped this step gets a 0ms transform (it snaps to
+                // its new edge instead of sliding the whole width of the deck — the
+                // old "late pop" from one side to the other). Opacity always eases,
+                // so it still fades in/out gently at the edge. Mobile keeps a snappy
+                // slide for the cards that are genuinely moving; desktop, the longer
+                // coverflow glide.
                 transition: {
-                  xs: "transform 430ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 280ms ease-out",
-                  md: "transform 600ms cubic-bezier(0.4, 0, 0.2, 1), opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)",
+                  xs: `transform ${wrapped ? "0ms" : "430ms cubic-bezier(0.22, 0.61, 0.36, 1)"}, opacity 280ms ease-out`,
+                  md: `transform ${wrapped ? "0ms" : "600ms cubic-bezier(0.4, 0, 0.2, 1)"}, opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)`,
                 },
                 cursor: "pointer",
                 "@media (prefers-reduced-motion: reduce)": { transition: "none" },
@@ -331,6 +539,7 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
                     sizes="(max-width: 900px) 268px, 284px"
                     loading="eager"
                     priority={abs <= WINDOW}
+                    draggable={false}
                     style={{ objectFit: "cover" }}
                   />
                 ) : (
