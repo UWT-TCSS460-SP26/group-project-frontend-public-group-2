@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Box from "@mui/material/Box";
@@ -193,6 +193,18 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
     [go],
   );
 
+  // Decode every poster up front. The buffer cards (offset ±3) rest at opacity 0
+  // off-frame, so the browser defers decoding them until they first slide in — which
+  // made an entering card "pop" in ~1s late AND janked the in-flight glide of the
+  // others (decode runs on the main thread). Decoding on mount makes every swipe
+  // paint-only, so both sides move identically and smoothly.
+  useEffect(() => {
+    const imgs = stageRef.current?.querySelectorAll<HTMLImageElement>("img[data-title-poster]");
+    imgs?.forEach((img) => {
+      void img.decode?.().catch(() => {});
+    });
+  }, []);
+
   if (n === 0) return null;
   const current = deck[active];
   const catalog = [
@@ -372,8 +384,11 @@ export function PosterDeck({ items }: { items: DeckItem[] }) {
                     fill
                     quality={85}
                     sizes="(max-width: 900px) 268px, 284px"
-                    loading="eager"
-                    priority={abs <= WINDOW}
+                    // Preload the whole ring (incl. the off-frame buffer posters) so
+                    // every card is downloaded and ready to decode before its first
+                    // swipe — no late "pop" when a buffer card slides into view.
+                    // (priority implies eager loading.)
+                    priority
                     draggable={false}
                     style={{ objectFit: "cover" }}
                   />
